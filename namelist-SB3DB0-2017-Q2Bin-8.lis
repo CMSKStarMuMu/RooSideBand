@@ -1,0 +1,13 @@
+maxDegree1=2
+maxDegree2=2
+maxDegree3=1
+xCosLHBin=12
+xCosKHBin=12
+xPhiHBin=12
+NSigma1L=8
+NSigma2L=3
+NSigma1R=3
+NSigma2R=13
+maxDegree=2
+fixPar=0
+MinContAdaptBin=5
