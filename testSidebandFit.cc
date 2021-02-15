@@ -761,6 +761,7 @@ switch ( *argv[1] ) {
   sssname.str("");
   sssname.clear();
   sssname<<RecoDir;
+  ssname=sssname.str();
   replaceAll(ssname,ssstxt.str(),sssera.str());
   strcpy(RecoDir,ssname.c_str());
 // 
