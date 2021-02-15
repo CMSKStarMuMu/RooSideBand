@@ -870,7 +870,7 @@ void FitSBModel(){
   OutFile = TFile::Open(OutFileName,"RECREATE");
   TTree *RecoB0TreeOut     = (TTree*)OutFileInputHisto->Get(OutputRecoB0TreeName);
    if(!RecoB0TreeOut ){
-     cout<<"TTree Reco Data: "<< OutputRecoB0TreeName <<" not found!!! Suggestion: remove this file e try again..."<<endl;
+     cout<<"TTree Reco Data: "<< OutputRecoB0TreeName <<" not found in file: "<<OutFileInputHisto<<"!!! Suggestion: remove this file e try again..."<<endl;
      exit(1);
    }else{
      cout<<"TTree Reco Data: "<< OutputRecoB0TreeName <<" OK FOUND!!!"<<endl;
