@@ -7,3 +7,5 @@ testSidebandFit -> program to test  RooBernsteinSideband pdf
                    add just to save it in the repositoty
         
 reaSideband     -> simple program to read&plots the bkg pdfs (angular&mass)
+
+namelist*lis    -> list of parameters for bkg models
