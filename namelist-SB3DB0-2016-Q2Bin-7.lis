@@ -1,0 +1,15 @@
+maxDegree1=5
+maxDegree2=3
+maxDegree3=3
+xCosLHBin=20
+xCosKHBin=20
+xPhiHBin=20
+NSigma1L=5.
+NSigma2L=2.2
+NSigma1R=2.4
+NSigma2R=5.6
+maxDegree=3
+fixParam=1000
+MinContAdaptBin=5
+AutoFixPar=1
+SigmaProbSign=1
