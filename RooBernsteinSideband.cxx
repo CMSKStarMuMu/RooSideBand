@@ -42,12 +42,23 @@ ClassImp(RooBernsteinSideband);
      RooAbsArg* coef ;
      while((coef = (RooAbsArg*)coefIter->Next())) {
        if (!dynamic_cast<RooAbsReal*>(coef)) {
-    	 std::cout << "RooBernsteinSideband::ctor(" << GetName() << ") ERROR: coSidebandcient " << coef->GetName()
+    	 std::cout << "RooBernsteinSideband::ctor(" << GetName() << ") ERROR: coefficient " << coef->GetName()
     	      << " is not of type RooAbsReal" << std::endl ;
     	 assert(0) ;
        }
        _coefList.add(*coef) ;
 //   	 std::cout << "RooBernsteinSideband::ctor(" << GetName() << ") coSidebandcient " << coef->GetName()<<std::endl ;
+      }
+      int icc=0;
+      for(int i = 0; i <= maxDegree1 ; ++i) {
+     	for(int j = 0; j <= maxDegree2 ; ++j) {
+     	 for(int k = 0; k <= maxDegree3 ; ++k) {
+ 
+     	 printf("RooBernsteinSideband: Par(%d)=%f cosL=%d cosK=%d phi=%d\n",icc,((RooAbsReal&) _coefList[icc]).getVal(), i,j,k);
+     	 icc++;
+ 
+     	 }
+     	}
       }
      delete coefIter;
      _maxDegreeV = std::max(maxDegree3,std::max(maxDegree1,maxDegree2));
@@ -106,21 +117,21 @@ Double_t RooBernsteinSideband::evaluate() const
         if(i<=_maxDegree3) sz[i]= sz[i-1]*(1.-z);
        }
        
-       fptype tx = 1.0;
-       fptype ty = 1.0;
-       fptype tz = 1.0;
-       for(  int i = 0; i <= _maxDegreeV ; ++i){
-        int ii = _maxDegreeV-i;
-        if(ii<=_maxDegree1) {sx[ii]*= tx*device_coeffbinomial(_maxDegree1,ii);tx*=x;}
-        if(ii<=_maxDegree2) {sy[ii]*= ty*device_coeffbinomial(_maxDegree2,ii);ty*=y;}
-        if(ii<=_maxDegree3) {sz[ii]*= tz*device_coeffbinomial(_maxDegree3,ii);tz*=z;}
-	
-       }
+//        fptype tx = 1.0;
+//        fptype ty = 1.0;
+//        fptype tz = 1.0;
+//        for(  int i = 0; i <= _maxDegreeV ; ++i){
+//         int ii = _maxDegreeV-i;
+//         if(ii<=_maxDegree1) {sx[ii]*= tx*device_coeffbinomial(_maxDegree1,ii);tx*=x;}
+//         if(ii<=_maxDegree2) {sy[ii]*= ty*device_coeffbinomial(_maxDegree2,ii);ty*=y;}
+//         if(ii<=_maxDegree3) {sz[ii]*= tz*device_coeffbinomial(_maxDegree3,ii);tz*=z;}
+// 	
+//        }
    
 // 
-//        double bernknvalx = 0.;
-//        double bernknvaly = 0.;
-//        double bernknvalz = 0.;
+       double bernknvalx = 0.;
+       double bernknvaly = 0.;
+       double bernknvalz = 0.;
        
 //        double sx_ini = pow(1.0-x,_maxDegree1);
 //        double sy_ini = pow(1.0-y,_maxDegree2);
@@ -133,44 +144,50 @@ Double_t RooBernsteinSideband::evaluate() const
        double func =0.0;
        double intg_1 =0.0;
        
-//       double tx = 1.;
+       double tx = 1.;
 //       long double sx = sx_ini;
        for(int i = 0; i <= _maxDegree1 ; ++i) {
          //if(((RooAbsReal&) _coefList[ipar]).getVal()!=0.000000000) 
-//	 bernknvalx =  device_coeffbinomial(_maxDegree1,i)*tx*sx[_maxDegree1-i];
+	 bernknvalx =  device_coeffbinomial(_maxDegree1,i)*tx*sx[_maxDegree1-i];
        
-//         double ty = 1.;
+         double ty = 1.;
 //         long double sy =sy_ini;
          for(int j = 0; j <= _maxDegree2 ; ++j) {
 	 //if(((RooAbsReal&) _coefList[ipar]).getVal()!=0.000000000)  
-//	 bernknvaly =  device_coeffbinomial(_maxDegree2,j)*ty*sy[_maxDegree2-j];
+	 bernknvaly =  device_coeffbinomial(_maxDegree2,j)*ty*sy[_maxDegree2-j];
 	 
-//          double tz = 1.;
+          double tz = 1.;
 //          long double sz = sz_ini;
           for(int k = 0; k <= _maxDegree3 ; ++k) {
-	   ipar++;
-	   if((((RooAbsReal&) _coefList[ipar-1]).getVal())==0.0) continue;
- 	   func += ((RooAbsReal&) _coefList[ipar-1]).getVal()*sx[_maxDegree1-i]*sy[_maxDegree2-j]*sz[_maxDegree3-k];
-           intg_1 +=((RooAbsReal&) _coefList[ipar-1]).getVal();
+//	   ipar++;
+//	   if((((RooAbsReal&) _coefList[ipar-1]).getVal())==0.0) continue;
+// 	   func += ((RooAbsReal&) _coefList[ipar-1]).getVal()*sx[_maxDegree1-i]*sy[_maxDegree2-j]*sz[_maxDegree3-k];
+//           intg_1 +=((RooAbsReal&) _coefList[ipar-1]).getVal();
 //	   if(fabs(((RooAbsReal&) _coefList[ipar]).getVal())>0.0){
-// 	    bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
-// 	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	    bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
+ 	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	    intg_1 += ((RooAbsReal&) _coefList[ipar]).getVal();
+	   ipar++;
 // 	   } 
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) _coefList[ipar]).getVal()<<std::endl;
-//	   tz *= z;
+	   tz *= z;
 	  }
-//	   ty *= y;
+	   ty *= y;
          }
-//	   tx *= x;
+	   tx *= x;
        }
 //        std::cout<<_x.min()<<" "<<_x.max()<<std::endl;
 //        std::cout<<_y.min()<<" "<<_y.max()<<std::endl;
 //        std::cout<<_z.min()<<" "<<_z.max()<<std::endl;
 //      if(func<1.E-30)  std::cout<<"evaluate = "<<func<<" x,y,z ="<<_x<<" "<<_y<<_z<<" "<<std::endl;
-      if(func<1.E-30)  return 1.E-30;
-      func =  func/(xdif*ydif*zdif);
-      intg_1 = (1.0+_maxDegree1)*(1.0+_maxDegree2)*(1.0+_maxDegree3)/intg_1;
-      func = func*intg_1;
+//
+// evaluate non deve essere normalizzato!
+//
+//      intg_1 = (1.0+_maxDegree1)*(1.0+_maxDegree2)*(1.0+_maxDegree3)/intg_1;
+//      intg_1=intg_1/(xdif*ydif*zdif);
+//      func = func*intg_1;
+ //     if(func<1.E-30)  std::cout<<"WARNING! eval = "<<func<<" x,y,z ="<<_x<<" "<<_y<<_z<<" "<<std::endl;;
+//      if(func<1.E-30)  return 1.E-30;
       return  func;
 } 
 
@@ -180,11 +197,11 @@ fptype RooBernsteinSideband::device_coeffbinomial  (fptype enne, fptype kappa) c
           factor *= (enne+1-i)/i; 
         }	 
         if (factor<=0 ){
-	 printf("Error in RooBernsteinSideband coeffbinomial=> factor = %f enne=%f kappa=%f",factor,enne,kappa);
+	 printf("Error in RooBernsteinSideband coeffbinomial=> factor = %f enne=%f kappa=%f\n",factor,enne,kappa);
          return 0;
 	} 
         return factor;
-}
+} 
 
 fptype  RooBernsteinSideband::device_bernsteinkn_func  (fptype x, fptype enne, fptype kappa) const{
    return TMath::Binomial(enne,kappa)*pow(x,kappa)*pow(1.0-x,enne-kappa);
@@ -243,9 +260,10 @@ fptype  RooBernsteinSideband::device_bernsteinkn_func  (fptype x, fptype enne, f
 	  }
          }
        }
-    if(ret<1.E-30) ret = 1.E-30;
+     //okkio!!! if(ret<1.E-30) ret = 1.E-30;
     intg_1 = (1.0+maxDegree1)*(1.0+maxDegree2)*(1.0+maxDegree3)/intg_1;
 //    ret=ret/(xBinw*yBinw*zBinw);
+//P.S. Il termmine xdif*ydif*zdif si elide sopra e sotto
       ret = ret*intg_1;
 //    std::cout<<"ret = "<<ret<<std::endl;
    return ret;
@@ -298,15 +316,26 @@ Int_t RooBernsteinSideband::getAnalyticalIntegral(RooArgSet& allVars, RooArgSet&
   }else if (matchArgs(allVars, analVars, _x,_y)){
    std::cout<<"getAnalyticalIntegral==4: Analytic integral over x y"<<std::endl;
    return 4;
+  }else if (matchArgs(allVars, analVars, _x   )){
+   std::cout<<"getAnalyticalIntegral==5: Analytic integral over x  "<<std::endl;
+   return 5;
+  }else if (matchArgs(allVars, analVars, _y   )){
+   std::cout<<"getAnalyticalIntegral==6: Analytic integral over y  "<<std::endl;
+   return 6;
+  }else if (matchArgs(allVars, analVars, _z   )){
+   std::cout<<"getAnalyticalIntegral==7: Analytic integral over z  "<<std::endl;
+   return 7;
   }else{  
-   std::cout << "Error in RooBernsteinSideband::analyticalIntegral" << std::endl;
+   std::cout << "Error in RooBernsteinSideband::analyticalIntegral: set getAnalyticalIntegral==0" << std::endl;
+   std::cout << "==> analVars = " << analVars << std::endl ;
    return 0;
  } 
 }
 Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeName) const
 {
-    if(code==1){
+    if(code==1){ // X Y Z INTEGRATED
 
+       printf("integrale xyz\n");
 //       fptype xBinw=_x.max(rangeName)-_x.min(rangeName);
 //       fptype yBinw=_y.max(rangeName)-_y.min(rangeName);
 //       fptype zBinw=_z.max(rangeName)-_z.min(rangeName);
@@ -393,11 +422,9 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
  
            }
          }
-//      ret=ret*(xBinw*yBinw*zBinw)/(xdif*ydif*zdif);
-//      ret=ret*(xdif*ydif*zdif)/(xBinw*yBinw*zBinw);
-//      ret=ret*(xdif*ydif*zdif);
-       if(ret<1.E-30) ret = 1.E-30;
-//       std::cout<<"int xyz = "<<ret<<std::endl;
+      ret=ret*(xdif*ydif*zdif);
+       //okkio!!! if(ret<1.E-30) ret = 1.E-30;
+//              std::cout<<"int xyz = "<<ret<<std::endl;
       return ret;
 //     
    } 
@@ -422,7 +449,8 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
   
     
 //    std::cout<<"CODE = "<<code<<std::endl;
-    if (code==2) {
+//
+    if (code==2) { // Y Z INTEGRATED
        double sx[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
        sx[0]=1.0;
        for( int i = 1; i <= _maxDegree1 ; ++i){
@@ -445,9 +473,10 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
          }
 	 tx*=x;
        }
-       return  func/xdif;
+//       std::cout<<"int yz = "<<func/xdif<<std::endl;
+       return  func*ydif*zdif;
     }
-    if (code==3) {
+    if (code==3) { // X Z INTEGRATED
        double sy[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
        sy[0]=1.0;
        for( int i = 1; i <= _maxDegree2 ; ++i){
@@ -470,9 +499,9 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
 	  ty*=y;
          }
        }
-       return  func/ydif;
+       return  func*xdif*zdif;
     }
-    if (code==4) {
+    if (code==4) {// X Y INTEGRATED
        double sz[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
        sz[0]=1.0;
        for( int i = 1; i <= _maxDegree3 ; ++i){
@@ -495,7 +524,100 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
 	  }
          }
        }
-       return  func/zdif;
+       return  func*xdif*ydif;
+    }
+    if (code==5) {// X INTEGRATED
+       double sy[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+       double sz[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+       sy[0]=1.0;
+       for( int i = 1; i <= _maxDegree2 ; ++i){
+        sy[i]= sy[i-1]*(1.-y);
+       }
+       sz[0]=1.0;
+       for( int i = 1; i <= _maxDegree3 ; ++i){
+        sz[i]= sz[i-1]*(1.-z);
+       }
+       int ipar =0;
+       fptype func =0.0;
+       for(int i = 0; i <= _maxDegree1 ; ++i) {
+	 fptype ty=1.;
+         for(int j = 0; j <= _maxDegree2 ; ++j) {
+	  fptype tz=1.;
+          for(int k = 0; k <= _maxDegree3 ; ++k) {
+ 	   fptype bernknvalx =  device_SidebandBernsteinkn_intgBin(xLeft,xRight,_maxDegree1,i);
+           fptype bernknvaly =  device_coeffbinomial(_maxDegree2,j)*ty*sy[_maxDegree2-j];
+           fptype bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
+	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+//	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
+	   ipar++;
+	   tz*=z;
+	  }
+	  ty*=y;
+         }
+       }
+       return  func*xdif;
+    }
+    if (code==6) {// Y INTEGRATED
+       double sx[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+       double sz[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+       sx[0]=1.0;
+       for( int i = 1; i <= _maxDegree1 ; ++i){
+        sx[i]= sx[i-1]*(1.-x);
+       }
+       sz[0]=1.0;
+       for( int i = 1; i <= _maxDegree3 ; ++i){
+        sz[i]= sz[i-1]*(1.-z);
+       }
+       int ipar =0;
+       fptype func =0.0;
+       fptype tx=1.;
+       for(int i = 0; i <= _maxDegree1 ; ++i) {
+         for(int j = 0; j <= _maxDegree2 ; ++j) {
+	  fptype tz=1.;
+          for(int k = 0; k <= _maxDegree3 ; ++k) {
+           fptype bernknvalx =  device_coeffbinomial(_maxDegree1,i)*tx*sx[_maxDegree1-i];
+ 	   fptype bernknvaly =  device_SidebandBernsteinkn_intgBin(yLeft,yRight,_maxDegree2,j);
+           fptype bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
+	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+//	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
+	   ipar++;
+	   tz*=z;
+	  }
+         }
+	 tx*=x;
+       }
+       return  func*ydif;
+    }
+    if (code==7) {// Z INTEGRATED
+       double sx[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+       double sy[10]={0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+       sx[0]=1.0;
+       for( int i = 1; i <= _maxDegree1 ; ++i){
+        sx[i]= sx[i-1]*(1.-x);
+       }
+       sy[0]=1.0;
+       for( int i = 1; i <= _maxDegree2 ; ++i){
+        sy[i]= sy[i-1]*(1.-y);
+       }
+       int ipar =0;
+       fptype func =0.0;
+       fptype tx=1.;
+       for(int i = 0; i <= _maxDegree1 ; ++i) {
+	 fptype ty=1.;
+         for(int j = 0; j <= _maxDegree2 ; ++j) {
+          for(int k = 0; k <= _maxDegree3 ; ++k) {
+           fptype bernknvalx =  device_coeffbinomial(_maxDegree1,i)*tx*sx[_maxDegree1-i];
+           fptype bernknvaly =  device_coeffbinomial(_maxDegree2,j)*ty*sy[_maxDegree2-j];
+ 	   fptype bernknvalz =  device_SidebandBernsteinkn_intgBin(zLeft,zRight,_maxDegree3,k);
+	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+//	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
+	   ipar++;
+	  }
+	  ty*=y;
+         }
+	 tx*=x;
+       }
+       return  func*zdif;
     }
    } 
     return 0.;

@@ -1,10 +1,10 @@
-maxDegree1=2
+maxDegree1=5
 maxDegree2=2
-maxDegree3=2
+maxDegree3=5
 xCosLHBin=20
 xCosKHBin=20
 xPhiHBin=20
-NSigma1L=5
+NSigma1L=5.0
 NSigma2L=2.2
 NSigma1R=2.4
 NSigma2R=5.6
