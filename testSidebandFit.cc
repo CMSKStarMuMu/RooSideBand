@@ -265,8 +265,8 @@ bool FirstMC     = false;
 //=================
 //=================
 //=================
-  double ParMin =  -100000.;
-  double ParMax =   100000.;
+  double ParMin =  0.;
+  double ParMax =  10000.;
   double RndMin =  0.;
   double RndMax =  1.;
 //=================
