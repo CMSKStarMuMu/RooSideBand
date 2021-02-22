@@ -10,9 +10,10 @@ Table of contents:
 		   
 		   			./testSidebandFit [Q2Bin] [Era]
 					
-		           [ testSidebandFit reads file namelist-SB3DB0-[Era]-[Q2Bin]-3.lis, 
-			     reads ntuples on EOS, reads file list of coefficients 
-			     => ListParValues-[Era]--[Q2Bin]-*-SigmaProb.txt ]	
+		           [ testSidebandFit reads: 
+			     * file namelist-SB3DB0-[Era]-[Q2Bin]-3.lis 
+			     * ntuples on EOS
+			     * coefficients saved in ListParValues-[Era]--[Q2Bin]-*-SigmaProb.txt ]	
         
 * readSideband           -> simple program to read&plots the bkg pdfs (angular&mass)
 
