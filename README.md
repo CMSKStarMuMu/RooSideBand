@@ -2,9 +2,12 @@
 
 Table of contents:
 
-* testSidebandFit       -> code to test RooBernsteinSideband models (pdf) 
-                           (fits&plots, re-compute the p-value, pulls studies...).
+* testSidebandFit       -> code to test RooBernsteinSideband models (pdf): 
+                           
+			   fits&plots, re-compute the p-value, pulls studies...
+			   
 		           All the files with sideband models will be provided.
+			   
 		           However, if you need to save again sb models in rooworkspace wsb 
 			   (in file savesb_*root), compile the code and run: 
 		   
