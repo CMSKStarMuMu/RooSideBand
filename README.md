@@ -2,12 +2,21 @@
 
 Table of contents:
 
-testSidebandFit -> program to test  RooBernsteinSideband pdf 
-                   (fits&plots, re-compute the p-value, pulls studies...)
-                   add to save it in the repository
+* testSidebandFit       -> code to test RooBernsteinSideband models (pdf) 
+                           (fits&plots, re-compute the p-value, pulls studies...).
+		           All the files with sideband models will be provided.
+		           However, if you need to save again sb models in rooworkspace wsb 
+			   (in file savesb_*root), compile the code and run: 
+		   
+		   			./testSidebandFit [Q2Bin] [Era]
+					
+		           [ testSidebandFit reads file namelist-SB3DB0-[Era]-[Q2Bin]-3.lis, reads ntuples
+			     on EOS, reads file list of coefficients => ListParValues-[Era]--[Q2Bin]-*-SigmaProb.txt ]	
         
-reaSideband     -> simple program to read&plots the bkg pdfs (angular&mass)
+* reaSideband           -> simple program to read&plots the bkg pdfs (angular&mass)
 
-namelist\*lis    -> list of parameters for bkg models (to be read by testSidebandFit)
+* namelist*.lis         -> lists of command parameters for testSidebandFit [degrees of Bernstein polynomial, bins for plots...]
 
-Makefile         -> compile
+* ListParValues*.txt    -> lists of coefficients for bkg models (read by testSidebandFit)
+
+* Makefile              -> compile 
