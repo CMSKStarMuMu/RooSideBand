@@ -13,7 +13,7 @@ Table of contents:
 		           [ testSidebandFit reads file namelist-SB3DB0-[Era]-[Q2Bin]-3.lis, reads ntuples
 			     on EOS, reads file list of coefficients => ListParValues-[Era]--[Q2Bin]-*-SigmaProb.txt ]	
         
-* reaSideband           -> simple program to read&plots the bkg pdfs (angular&mass)
+* readSideband           -> simple program to read&plots the bkg pdfs (angular&mass)
 
 * namelist*.lis         -> lists of command parameters for testSidebandFit [degrees of Bernstein polynomial, bins for plots...]
 
