@@ -8,8 +8,8 @@ Table of contents:
 			   
 		           All the files with sideband models will be provided.
 			   
-		           However, if you need to save sb models again in file savesb_*root (and in rooworkspace "wsb"), 
-			   compile the code and run: 
+		           However, if you need to save sb models again in file savesb_*root 
+			   (and in rooworkspace "wsb"), compile the code and run: 
 		   
 		   			./testSidebandFit [Q2Bin] [Era]
 					
