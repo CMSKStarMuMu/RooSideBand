@@ -2520,19 +2520,13 @@ void CreateInputHistoFile(){
   double piMass = 0.13957039;
   double kMass = 0.493677;
   double BpMass = 5.2791;
-  double B0Mass = 5.27962;
   double KstarMass = 0.892;
-  double MassPsi2S=3.696;
-  double MassJPsi =3.0969;
   double mmpip;
   double mmpim;
   double mmpipkm;
   double mmpimkp;
   double mmpiKaon;
-  double mmpiKaon2;
-  double mmpi1;
   double mmpi2;
-  double mmpipi;
   double kstTrkmPt;
   double kstTrkmPhi;
   double kstTrkmEta;
@@ -2543,16 +2537,9 @@ void CreateInputHistoFile(){
   double pi2Pt=0;
   double pimPt=0;
   double pipPt=0;
-  double piKaon =0;
-  double pipk =0;
-  double pimk =0;
   double mmkp =0;
   double mmkm =0;
   double mmka1 =0;
-  double mmka2 =0;
-  double kstKp =0;
-  double kstKm =0;
-  double kst1  =0;
   double kst2  =0;
 //
   RecoB0Tree->SetBranchAddress("tagB0"         ,&tagB0);
@@ -2651,43 +2638,31 @@ void CreateInputHistoFile(){
  
  	     ROOT::Math::PtEtaPhiMVector KpVec (kstTrkpPt,kstTrkpEta,kstTrkpPhi,kMass);
  	     ROOT::Math::PtEtaPhiMVector KmVec (kstTrkmPt,kstTrkmEta,kstTrkmPhi,kMass);
-	     mmpipi = (JpsiVec+PipVec+PimVec).mass();
+//	     mmpipi = (JpsiVec+PipVec+PimVec).mass();
 	     mmpip  = (JpsiVec+PipVec).mass();
 	     mmpim  = (JpsiVec+PimVec).mass();
 	     mmkp   = (JpsiVec+KpVec).mass();
 	     mmkm   = (JpsiVec+KmVec).mass();
-	     kstKp  = (KpVec+PimVec).mass();
-	     kstKm  = (KmVec+PipVec).mass();
+//	     kstKp  = (KpVec+PimVec).mass();
+//	     kstKm  = (KmVec+PipVec).mass();
 	     pipPt  = (PipVec).pt();
 	     pimPt  = (PimVec).pt();
 	     mmpipkm = (JpsiVec+PipVec+KmVec).mass();
 	     mmpimkp = (JpsiVec+PimVec+KpVec).mass();
-	     pipk = (PipVec+KmVec).mass();
-	     pimk = (PimVec+KpVec).mass();
+//	     pipk = (PipVec+KmVec).mass();
+//	     pimk = (PimVec+KpVec).mass();
  	     if (tagB0>0) {
-	      mmpi1=mmpip;
 	      mmpi2=mmpim;
-	      kst1 = kstKp;
-	      kst2 = kstKm;
 	      mmpiKaon=mmpipkm;
-	      mmpiKaon2=mmpimkp;
 	      pi1Pt=pipPt;
 	      pi2Pt=pimPt;
-	      piKaon = pipk;
 	      mmka1=mmkp;
-	      mmka2=mmkm;
 	     }else{
-	      mmpi1=mmpim;
 	      mmpi2=mmpip;
-	      kst1 = kstKm;
-	      kst2 = kstKp;
 	      mmpiKaon=mmpimkp;
-	      mmpiKaon2=mmpipkm;
 	      pi1Pt=pimPt;
 	      pi2Pt=pipPt;
-	      piKaon = pimk;
 	      mmka1=mmkm;
-	      mmka2=mmkp;
 	     }
 //	     XCut =((mmpi2>3.2&&mmpi2<3.6)&&mmka1>4.7&&mmka1<4.9)&&fabs(BpMass-mmpiKaon)<0.139&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0.09;
 //	     XCut =fabs(BpMass-mmpiKaon)<0.139&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0.09&&mmpiKaon2<5.15;
