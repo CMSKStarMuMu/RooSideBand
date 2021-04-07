@@ -64,6 +64,10 @@
 #include <TBinomialEfficiencyFitter.h>
 #include <TKDTreeBinning.h>
 #include <TH2Poly.h>
+#include <Math/Vector4Dfwd.h>
+#include <Math/GenVector/LorentzVector.h>
+#include <Math/GenVector/PtEtaPhiM4D.h>
+//#include <RooMath/GenVector/PtEtaPhiM4D.h>
 //#if !defined(__CINT__) || defined(__MAKECINT__)
 #include <RooRandom.h>
 #include <RooFit.h>
@@ -126,6 +130,7 @@ using namespace RooFit;
 void FitSBModel();
 void CreateInputHistoFile();
 void replaceAll(std::string& str, const std::string& from, const std::string& to) ;
+void replaceChar(char * txt, const char * txt1, const char * txt2) ;
 //int RunEra=2017;
 TTree* makeGenSBTTree(RooDataSet* geneDataNew, RooDataSet* geneMassNew,RooBernsteinSideband* BernSideBand,  TFile*OutFileNtupla); 
 double FitMassSpectrumRoofit(RooDataSet* RooDataMass, TCanvas* c2, TH1D* masHist, TH1D* pdfHist, TH1D*sigHist, TH1D* bkgHist, int MaxDegreeBckg);
@@ -178,7 +183,8 @@ bool FirstMC     = false;
   char AnaMiniTXT[100]		    =  "";
   char *RunEra;
 //  char fitMassFileName[100]	    =  "results_fits_[RunEra]_newCB.root";
-  char fitMassFileName[300]         =  "/eos/cms/store/user/fiorendi/p5prime/massFits/results_fits_[RunEra]_fM_newbdt.root";// RunEra  will be set after...
+  char fitMassFileName[100]         =  "results_fits_[RunEra]_fM_newbdt.root";// RunEra  will be set after...
+  char fitMassFileNameJpsi[100]     =  "results_fits_[RunEra]_fM_Jpsi_newbdt.root";// RunEra  will be set after...
   char FMTNSigma1L[10]		    ="";
   char FMTNSigma2L[10]		    ="";
   char FMTNSigma1R[10]		    ="";
@@ -265,8 +271,8 @@ bool FirstMC     = false;
 //=================
 //=================
 //=================
-  double ParMin =  0.;
-  double ParMax =  10000.;
+  double ParMin =  -100000.;
+  double ParMax =   100000.;
   double RndMin =  0.;
   double RndMax =  1.;
 //=================
@@ -343,6 +349,10 @@ bool FirstMC     = false;
   float xQ2HBin   = (xMaxQMuMu -xMinQMuMu)/0.1;
   double XHScale = 10;
   
+//   double yieldSignal = 1.41895e+06;
+//   double yieldBckg   = 4.32096e+05;
+  double yieldSignal = 1.37238e+06;
+  double yieldBckg   = 6.98786e+05;
 //   double ParMin = -1000;
 //   double ParMax =  1000;
 //   double RndMin = -0.1;
@@ -362,6 +372,10 @@ bool FirstMC     = false;
   TH1D* pdfHxMassQ2    = new TH1D( "pdfHxMassQ2", "B^{0} Mass Fit Q2 Bin",  XHScale * xMassHBin , XMinSign, XMaxSign);
   TH1D* sigHxMassQ2    = new TH1D( "sigHxMassQ2", "B^{0} Mass Fit Q2 Bin",  XHScale * xMassHBin , XMinSign, XMaxSign);
   TH1D* bkgHxMassQ2    = new TH1D( "bkgHxMassQ2", "B^{0} Mass Fit Q2 Bin",  XHScale * xMassHBin , XMinSign, XMaxSign);
+//
+  TH2D* HxMassVsCosL   = new TH2D( "HxMassVsCosL","B^{0} Mass%CosL"    ,(int)xMassHBin2, XMinSign,  XMaxSign, NFact*xCosLHBin, XMinCosThetaL, XMaxCosThetaL);
+  TH2D* HxMassVsCosK   = new TH2D( "HxMassVsCosK","B^{0} Mass%CosK"    ,(int)xMassHBin2, XMinSign,  XMaxSign, NFact*xCosKHBin, XMinCosThetaK, XMaxCosThetaK);
+  TH2D* HxMassVsPhi    = new TH2D( "HxMassVsPhi", "B^{0} Mass%Phi"     ,(int)xMassHBin2, XMinSign,  XMaxSign, NFact*xPhiHBin , XMinPhi, XMaxPhi);
 //TH1D* pdfHist        = new TH1D( "pdfHist", "B^{0} Mass Fit",     xMassHBin2, XMinSign,  XMaxSign);
 //TH1D* sigHist        = new TH1D( "sigHist", "B^{0} Mass Fit",     xMassHBin2, XMinSign,  XMaxSign);
 //TH1D* bkgHist        = new TH1D( "bkgHist", "B^{0} Mass Fit",     xMassHBin2, XMinSign,  XMaxSign);
@@ -386,7 +400,8 @@ RooDataSet *geneDataNew=0;
 RooBernsteinSideband* BernSideBand=0;
 RooBernsteinSideband* BernSideFits=0;
 RooBernsteinSideband* Bern        =0;
-RooExponential  *bkg_mass_sb      =0;
+RooAbsPdf  *bkg_mass_sb           =0;
+RooAbsPdf  *bkg_exp               =0;
 //RooBernstein        * Bern        =0;
 int NumMassNewGen =0;
 //
@@ -470,6 +485,7 @@ switch ( *argv[1] ) {
    Q2Max = 10.09; 
    Q2Bin = 4;
    Q2Fake= 9.;
+   sprintf(fitMassFileName,fitMassFileNameJpsi);
     break;
   case '5' : 
    Q2Min = 10.09; 
@@ -529,13 +545,13 @@ switch ( *argv[1] ) {
 //    sprintf(MiniMCTXT,"MiniMC-NFactGen%d",NFactGen);
     GenMiniMC = true;
     std::cout<<"========================================================================="<<endl;
-    std::cout<<"Setting the option: GenMiniMC event                                      "<<std::endl;
+    std::cout<<"Setting the option: GenMiniMC events                                     "<<std::endl;
     std::cout<<"========================================================================="<<endl;
   }
   if (argc>3 && (strcmp(argv[3],"f") == 0) ){
     ReFit = true;
     std::cout<<"========================================================================="<<endl;
-    std::cout<<"Setting the option: ReFit event                                          "<<std::endl;
+    std::cout<<"Setting the option: ReFit events                                         "<<std::endl;
     std::cout<<"========================================================================="<<endl;
   }
   if (argc>3 && (strcmp(argv[3],"m") == 0) ){
@@ -601,6 +617,9 @@ switch ( *argv[1] ) {
   if(it2 != mappa.end()) {
    AutoFixPar   =    atol (mappa["AutoFixPar"  ].c_str() ) ;
   }
+  if(AutoFixPar){
+   std::cout<<"Warning: setting search for Param to fix = "<<AutoFixPar<<std::endl;
+  }
   map<string,string>::iterator  it3= mappa.find("NFactGen");
   if(it3 != mappa.end()) {
    NFactGen   =    atoi (mappa["NFactGen"  ].c_str() ) ;
@@ -627,8 +646,23 @@ switch ( *argv[1] ) {
    NIniGen   =    atoi (mappa["NIniGen"  ].c_str() ) ;
    std::cout<<"Warning: setting  NIniGen from namelist= "<<NIniGen<<std::endl;
   }
-  if(AutoFixPar){
-   std::cout<<"Warning: setting search for Param to fix = "<<AutoFixPar<<std::endl;
+  map<string,string>::iterator  it7= mappa.find("tagged_mass_rangeMin");
+  if(it7 != mappa.end()) {
+   tagged_mass_rangeMin   =    atof (mappa["tagged_mass_rangeMin"  ].c_str() ) ;
+   std::cout<<"Warning: setting  tagged_mass_rangeMin from namelist= "<<tagged_mass_rangeMin<<std::endl;
+   if(tagged_mass_rangeMin<XMinSign){
+    std::cout<<Form("Error: setting  tagged_mass_rangeMin=%f < XMinSign=%f",tagged_mass_rangeMin,XMinSign)<<std::endl;
+    exit(0);
+   }
+  }
+  map<string,string>::iterator  it8= mappa.find("tagged_mass_rangeMax");
+  if(it8 != mappa.end()) {
+   tagged_mass_rangeMax   =    atof (mappa["tagged_mass_rangeMax"  ].c_str() ) ;
+   std::cout<<"Warning: setting  tagged_mass_rangeMax from namelist= "<<tagged_mass_rangeMax<<std::endl;
+   if(tagged_mass_rangeMax>XMaxSign){
+    std::cout<<Form("Error: setting  tagged_mass_rangeMax=%f < XMaxSign=%f",tagged_mass_rangeMax,XMaxSign)<<std::endl;
+    exit(0);
+   }
   }
 
   std::cout<<" Num Param Bernstein polynomial CosL:	"<<maxDegree1<<std::endl;
@@ -748,22 +782,19 @@ switch ( *argv[1] ) {
   }else{
    sprintf(OutFileName,"testGoofitSB3DB0-%s%s-Q2Bin-%d-Bins-%d-%d-%d-BernDeg-%d-%d-%d-WSBL-%s-%s-WSBR-%s-%s%s%s%s.root",RunEra,ProjectTXT, Q2Bin,xCosLHBin,xCosKHBin,xPhiHBin,maxDegree1,maxDegree2,maxDegree3,TXTNSigma1L,TXTNSigma2L,TXTNSigma1R,TXTNSigma2R,TaggedVarTXT,SigmaMethodTXT,FoldedTXT); 
   }
+  replaceChar(RecoDir,"[RunEra]",RunEra);
 //  sprintf(RecoDir,"~/p5prime/%s/skims/newphi",RunEra);
-  sprintf(InputFileNameRecoB0,"%sData_All_finalSelection.root",RunEra);
+//  sprintf(InputFileNameRecoB0,"%sData_All_finalSelection.root",RunEra);
+  replaceChar(InputFileNameRecoB0,"[RunEra]",RunEra);
 //  sprintf(fitMassFileName,"results_fits_%s_fixDataPdf.root",RunEra);
-  std::stringstream sssname,sssera,ssstxt;
-  sssname<<fitMassFileName;
-  std::string ssname=sssname.str();
-  sssera<<RunEra;
-  ssstxt<<"[RunEra]";
-  replaceAll(ssname,ssstxt.str(),sssera.str());
-  strcpy(fitMassFileName,ssname.c_str());
-  sssname.str("");
-  sssname.clear();
-  sssname<<RecoDir;
-  ssname=sssname.str();
-  replaceAll(ssname,ssstxt.str(),sssera.str());
-  strcpy(RecoDir,ssname.c_str());
+//   std::stringstream sssname,sssera,ssstxt;
+//   sssname<<fitMassFileName;
+//   std::string ssname=sssname.str();
+//   sssera<<RunEra;
+//   ssstxt<<"[RunEra]";
+//   replaceAll(ssname,ssstxt.str(),sssera.str());
+//   strcpy(fitMassFileName,ssname.c_str());
+  replaceChar(fitMassFileName,"[RunEra]",RunEra);
 // 
   sprintf(ListParName,"ListParValues-%s-%s-Q2Bin-%d-Bins-%d-%d-%d-BernDeg-%d-%d-%d-WSBL-%s-%s-WSBR-%s-%s%s%s%s.txt"   ,RunEra,ProjectTXT, Q2Bin,xCosLHBin,xCosKHBin,xPhiHBin,maxDegree1,maxDegree2,maxDegree3,TXTNSigma1L,TXTNSigma2L,TXTNSigma1R,TXTNSigma2R,TaggedVarTXT,SigmaMethodTXT,FoldedTXT); 
   sprintf(ListPloName,"ListParValues-%s-%s-Q2Bin-%d-Bins-%d-%d-%d-BernDeg-%d-%d-%d-WSBL-%s-%s-WSBR-%s-%s%s%s%s.plo"   ,RunEra,ProjectTXT, Q2Bin,xCosLHBin,xCosKHBin,xPhiHBin,maxDegree1,maxDegree2,maxDegree3,TXTNSigma1L,TXTNSigma2L,TXTNSigma1R,TXTNSigma2R,TaggedVarTXT,SigmaMethodTXT,FoldedTXT); 
@@ -870,7 +901,7 @@ void FitSBModel(){
   OutFile = TFile::Open(OutFileName,"RECREATE");
   TTree *RecoB0TreeOut     = (TTree*)OutFileInputHisto->Get(OutputRecoB0TreeName);
    if(!RecoB0TreeOut ){
-     cout<<"TTree Reco Data: "<< OutputRecoB0TreeName <<" not found in file: "<<OutFileNameInputHisto<<"!!! Suggestion: remove this file e try again..."<<endl;
+     cout<<"TTree Reco Data: "<< OutputRecoB0TreeName <<" not found!!! Suggestion: remove this file e try again..."<<endl;
      exit(1);
    }else{
      cout<<"TTree Reco Data: "<< OutputRecoB0TreeName <<" OK FOUND!!!"<<endl;
@@ -932,13 +963,17 @@ void FitSBModel(){
   double phi_kst_mumu	;
   double xtagged_mass	;
   double xmumuMass	;
-  double xmumuMassE      ;
+  double xmumuMassE     ;
+  double mmk1	        ;
+  double mmk2           ;
   RecoB0TreeOut->SetBranchAddress("cos_theta_l"   ,&cos_theta_l );
   RecoB0TreeOut->SetBranchAddress("cos_theta_k"   ,&cos_theta_k );
   RecoB0TreeOut->SetBranchAddress("phi_kst_mumu"  ,&phi_kst_mumu);
   RecoB0TreeOut->SetBranchAddress("tagged_mass"   ,&xtagged_mass );
   RecoB0TreeOut->SetBranchAddress("mumuMass"      ,&xmumuMass );
   RecoB0TreeOut->SetBranchAddress("mumuMassE"     ,&xmumuMassE );
+  RecoB0TreeOut->SetBranchAddress("mmk1"          ,&mmk1 );
+  RecoB0TreeOut->SetBranchAddress("mmk2"          ,&mmk2 );
   int nentries = (int)RecoB0TreeOut->GetEntries();
 //  int nentries = 0;
 //  nentries = 3000.;
@@ -949,6 +984,7 @@ void FitSBModel(){
   RooDataSet *fulldata   = new RooDataSet("fulldata", "fulldataset",  RooArgSet(*tagged_mass,*mumuMass,*mumuMassE));
   for (Int_t i=0;i<nentries;i++) {
          RecoB0TreeOut->GetEntry(i);
+//  	 if(mmk2>3.6&&mmk2<4.2&&mmk1>4.7&&mmk1<4.9&&Q2Bin==4)continue;
          if( (xtagged_mass>XMinSign&&xtagged_mass<XMaxSign) ){
 	   HxMassQ2->Fill(xtagged_mass);
 	   tagged_mass->setVal(xtagged_mass);
@@ -1021,6 +1057,11 @@ void FitSBModel(){
   BernSideBand    = new RooBernsteinSideband(Form("BernSideBand_bin%d_%s",Q2Bin,RunEra),Form("BernSideBand_bin%d_%s",Q2Bin,RunEra),*ctL,*ctK,*phi,*coefLis,maxDegree1,maxDegree2,maxDegree3);
   BernSideFits    = new RooBernsteinSideband("BernSideFits","BernSideFits",*ctL,*ctK,*phi,*coefFit,maxDegree1,maxDegree2,maxDegree3);
 //
+//   phi->setRange("redu",-3.14159, 3.14159 );
+//   RooAbsReal* BernCheckNorm = BernSideBand->createIntegral(RooArgSet(*ctL,*ctK,*phi),RooArgSet(*ctL,*ctK,*phi));
+//   RooAbsReal* BernCheckNormRedu = BernSideBand->createIntegral(RooArgSet(*ctL,*ctK,*phi),RooArgSet(*ctL,*ctK,*phi),"redu");
+//   std::cout<<Form("Check Normalization for Angular Bkg Model (Bernstein) = %1.20f (redu=%1.20f)\n",BernCheckNorm->getVal(),BernCheckNormRedu->getVal())<<std::endl;
+//
   if(GenMiniMC) FirstMC=true;
   B0Sigma = FitMassSpectrumRoofit(fulldata, c2, HxMassQ2,pdfHxMassQ2,sigHxMassQ2,bkgHxMassQ2, maxDegree);
 //  
@@ -1042,20 +1083,31 @@ void FitSBModel(){
   std::vector<double> CorreAdaptX;
   std::vector<double> CorreAdaptY;
   std::vector<double> CorreAdaptZ;
+  
+  TH1D* HWMass         = new TH1D( "HWMass"     , "B^{0} Mass"		 ,	      xMassHBin2, XMinSign, XMaxSign);
+  TCanvas* cw = new TCanvas("cw","Fit Mass Spectrum",200,10,900,780);
 //  RooDataSet* dataSBMass  = (RooDataSet*)fulldata->reduce(RooArgSet(*tagged_mass,*mumuMass,*mumuMassE),"xtagged_mass>XMinSBL&&xtagged_mass<XMaxSBL)||xtagged_mass>XMinSBR&&xtagged_mass<XMaxSBR") ;
   RooDataSet *dataSBMass   = new RooDataSet("dataSBMass", "dataSBMass",  RooArgSet(*tagged_mass,*mumuMass,*mumuMassE));
   RooDataSet *dataSBAng    = new RooDataSet("dataSBAng", "dataSBAng",  RooArgSet(*ctL,*ctK,*phi));
   for (Int_t i=0;i<nentries;i++) {
   	  RecoB0TreeOut->GetEntry(i);
+//  	 if(mmk2>3.6&&mmk2<4.2&&mmk1>4.7&&mmk1<4.9&&Q2Bin==4)continue;
 	  if(cos_theta_l==-99.) continue;
           if( (xtagged_mass>XMinSBL&&xtagged_mass<XMaxSBL)|| 
 	      (xtagged_mass>XMinSBR&&xtagged_mass<XMaxSBR)){
+// 	  if((mmk2< 4)) continue;
 // 	   if(cos_theta_l==-99.){
 // 	    cout<<Form("99 tagged_mass=%f %f %f %f",xtagged_mass,cos_theta_l,cos_theta_k,phi_kst_mumu)<<endl;
 // 	    continue;
 // 	   } ;
+//  	   if(cos_theta_k<0.6||cos_theta_k>0.8) continue;
+//  	   if(xtagged_mass>5.2) continue;
+	   HWMass->Fill(xtagged_mass);
 	   HxMassQ2SB->Fill(xtagged_mass);
 	   HxReco->Fill(cos_theta_l,cos_theta_k,phi_kst_mumu);
+	   HxMassVsCosL->Fill(xtagged_mass,cos_theta_l);
+	   HxMassVsCosK->Fill(xtagged_mass,cos_theta_k);
+	   HxMassVsPhi ->Fill(xtagged_mass,phi_kst_mumu);
  	   dataSBMass->add(RooArgSet(*tagged_mass,*mumuMass,*mumuMassE));
 	   ctL->setVal(cos_theta_l);
 	   ctK->setVal(cos_theta_k);
@@ -1069,6 +1121,10 @@ void FitSBModel(){
 // 	  if(cos_theta_l!=-99.) cout<<Form("tagged_mass=%f %f %f %f",xtagged_mass,cos_theta_l,cos_theta_k,phi_kst_mumu)<<endl;
 	 }
   }   
+  
+  cw->cd();
+  HWMass->Draw();
+  cw->Print("hwmass.png");
   int GenEntries = NFactGen*dataSBAng->sumEntries();
   std::cout<<"Found SB entries = "<<HxReco->GetEntries()<<std::endl;
   if(HxReco->GetEntries()<10){
@@ -1083,13 +1139,6 @@ void FitSBModel(){
 //   TH1D* HxRecoPhi  = (TH1D*) HxReco->Project3D("z");
 // 
 //  TH2D* HxRecoCosLK =(TH2D*) HxReco->Project3D("xy");
-  
-
-
-
-
- 
- 
   OutFile->cd();
     
   
@@ -2184,6 +2233,38 @@ TCanvas* ca = new TCanvas("ca","Adaptive Binning Histograms",200,200,800,800);
   OutFile->cd();
 
   c1->cd();
+//     TLegend* leg_sign = new TLegend(0.30,0.70,0.90,0.90);
+//     leg_sign->SetTextSize(0.025) ;
+//     leg_sign->SetTextAlign(31);
+//     leg_sign->SetBorderSize(0.);
+//     leg_sign->SetFillStyle(0);
+//     leg_sign->SetHeader(Form( "B_{0} #rightarrow K^{*0}#mu^{+}#mu^{-} Mass Spectrum for bin %d [%2.1f<Q^{2}<%2.1f] ", Q2Bin, Q2Min,Q2Max));
+//     leg_sign->AddEntry(HxMass ,"","");
+//     if(signalYield->getError()!=0){
+//       leg_sign->AddEntry(&HxMass ,Form( "Yield_{Sign} =    %5.0f  #pm %5.0f",signalYield->getValue(),signalYield->getError()),"");
+//     }else{
+//       leg_sign->AddEntry(&HxMass ,Form( "Yield_{Sign} =    %5.0f Fixed",signalYield->getValue()),"");
+//     }
+//     if(bckgYield->getError()!=0){
+//       leg_sign->AddEntry(&HxMass ,Form( "Yield_{Bckg} =    %5.0f  #pm  %5.0f",bckgYield->getValue(),bckgYield->getError()),"");
+//     }else{
+//       leg_sign->AddEntry(&HxMass ,Form( "Yield_{Bckg} =    %5.0f  Fixed",bckgYield->getValue()),"");
+//     }
+//     
+//     if(mean.getError()!=0){
+//      leg_sign->AddEntry(&HxMass ,Form( "M_{B^{0}} =   %5.5f  #pm %5.5f",mean.getValue(),mean.getError()),"");
+//     }else{
+//      leg_sign->AddEntry(&HxMass ,Form( "M_{B^{0}} =   %5.5f Fixed",mean.getValue()),"");
+//      }
+//     if(sigma1.getError()!=0){
+//      leg_sign->AddEntry(&HxMass ,Form( "#sigma#scale[0.6]{1}_{B^{0}} =   %5.5f  #pm %5.5f",sigma1.getValue(),sigma1.getError()),"");
+//     }else{
+//      leg_sign->AddEntry(&HxMass ,Form( "#sigma#scale[0.6]{1}_{B^{0}} =   %5.5f Fixed",sigma1.getValue()),"");
+//     }
+//     if(sigma2.getError()!=0){
+//      leg_sign->AddEntry(&HxMass ,Form( "#sigma#scale[0.6]{2}_{B^{0}} =   %5.5f  #pm %5.5f",sigma2.getValue(),sigma2.getError()),"");
+//     }else{
+//      leg_sign->AddEntry(&HxMass ,Form( "#sigma#scale[0.6]{2}_{B^{0}} =   %5.5f Fixed",sigma2.getValue()),"");
 //    }
   gStyle->SetTitleBorderSize(0);
 //  gStyle->SetTitleFontSize(0.08) ;
@@ -2200,6 +2281,9 @@ TCanvas* ca = new TCanvas("ca","Adaptive Binning Histograms",200,200,800,800);
   HxMass->Write();
   HxMassQ2SB->Write();
   HxMassQ2->Write();
+  HxMassVsCosL->Write();
+  HxMassVsCosK->Write();
+  HxMassVsPhi->Write();
   HxReco->Write();
   HSideBand3D->Write();
   HSBFunc->Write();
@@ -2226,6 +2310,9 @@ TCanvas* ca = new TCanvas("ca","Adaptive Binning Histograms",200,200,800,800);
   
   
    c1->Write();
+   c2->Write();
+   gSystem->Exec(Form("mv %s %s.tmp",PNGNameMassQ2Hist,PNGNameMassQ2Hist));
+   c2->Print(PNGNameMassQ2Hist);
    c6->Write();
    gSystem->Exec(Form("mv %s %s.tmp",PNGNameFitSB3D,PNGNameFitSB3D));
    c6->Print(PNGNameFitSB3D);
@@ -2415,6 +2502,9 @@ void CreateInputHistoFile(){
   double  phi_kst_mumu   ;
   double  mumuMass	 ;
   double  mumuMassE	 ;
+  double  mumuPt   	  ;
+  double  mumuPhi   	  ;
+  double  mumuEta   	  ;
   double  recQ2 	 ;
   double  tagB0          ;
   double  mmk1		 ;
@@ -2424,21 +2514,72 @@ void CreateInputHistoFile(){
   double  dR_mum_trkm;
   double  dR_mup_trkp;
   bool    passB0Psi_lmnr ;
+  bool    passB0Psi_jpsi ;
+  bool    passB0Psi_psip ;
+  bool    passB0Psi      ;
+  double piMass = 0.13957039;
+  double kMass = 0.493677;
+  double BpMass = 5.2791;
+  double B0Mass = 5.27962;
+  double KstarMass = 0.892;
+  double MassPsi2S=3.696;
+  double MassJPsi =3.0969;
+  double mmpip;
+  double mmpim;
+  double mmpipkm;
+  double mmpimkp;
+  double mmpiKaon;
+  double mmpiKaon2;
+  double mmpi1;
+  double mmpi2;
+  double mmpipi;
+  double kstTrkmPt;
+  double kstTrkmPhi;
+  double kstTrkmEta;
+  double kstTrkpPt;
+  double kstTrkpPhi;
+  double kstTrkpEta;
+  double pi1Pt=0;
+  double pi2Pt=0;
+  double pimPt=0;
+  double pipPt=0;
+  double piKaon =0;
+  double pipk =0;
+  double pimk =0;
+  double mmkp =0;
+  double mmkm =0;
+  double mmka1 =0;
+  double mmka2 =0;
+  double kstKp =0;
+  double kstKm =0;
+  double kst1  =0;
+  double kst2  =0;
 //
+  RecoB0Tree->SetBranchAddress("tagB0"         ,&tagB0);
   RecoB0Tree->SetBranchAddress("tagged_mass"   ,&tagged_mass);
   RecoB0Tree->SetBranchAddress("cos_theta_l"   ,&cos_theta_l);
   RecoB0Tree->SetBranchAddress("cos_theta_k"   ,&cos_theta_k);
   RecoB0Tree->SetBranchAddress("phi_kst_mumu"  ,&phi_kst_mumu);
   RecoB0Tree->SetBranchAddress("mumuMass"      ,&mumuMass);
   RecoB0Tree->SetBranchAddress("mumuMassE"     ,&mumuMassE);
-  RecoB0Tree->SetBranchAddress("tagB0"         ,&tagB0);
+  RecoB0Tree->SetBranchAddress("mumuPt"        ,&mumuPt );
+  RecoB0Tree->SetBranchAddress("mumuPhi"       ,&mumuPhi );
+  RecoB0Tree->SetBranchAddress("mumuEta"       ,&mumuEta );
+  RecoB0Tree->SetBranchAddress("kstTrkmPt"     ,&kstTrkmPt);
+  RecoB0Tree->SetBranchAddress("kstTrkmPhi"    ,&kstTrkmPhi);
+  RecoB0Tree->SetBranchAddress("kstTrkmEta"    ,&kstTrkmEta);
+  RecoB0Tree->SetBranchAddress("kstTrkpPt"     ,&kstTrkpPt);
+  RecoB0Tree->SetBranchAddress("kstTrkpPhi"    ,&kstTrkpPhi);
+  RecoB0Tree->SetBranchAddress("kstTrkpEta"    ,&kstTrkpEta);
   RecoB0Tree->SetBranchAddress("mmk1"          ,&mmk1);
   RecoB0Tree->SetBranchAddress("mmk2"          ,&mmk2);
   RecoB0Tree->SetBranchAddress("bMass"         ,&bMass);
   RecoB0Tree->SetBranchAddress("bBarMass"      ,&bBarMass);
-  RecoB0Tree->SetBranchAddress("dR_mum_trkm",  &dR_mum_trkm);
-  RecoB0Tree->SetBranchAddress("dR_mup_trkp",  &dR_mup_trkp);
+  RecoB0Tree->SetBranchAddress("dR_mum_trkm"   ,&dR_mum_trkm);
+  RecoB0Tree->SetBranchAddress("dR_mup_trkp"   ,&dR_mup_trkp);
   RecoB0Tree->SetBranchAddress("passB0Psi_lmnr",&passB0Psi_lmnr);
+  RecoB0Tree->SetBranchAddress("passB0Psi_jpsi",&passB0Psi_jpsi);
+  RecoB0Tree->SetBranchAddress("passB0Psi_psip",&passB0Psi_psip);
   
   RecoB0TreeOut->Branch("cos_theta_l"   ,&cos_theta_l    ,   "cos_theta_l/D"   );
   RecoB0TreeOut->Branch("cos_theta_k"   ,&cos_theta_k    ,   "cos_theta_k/D"   );
@@ -2446,8 +2587,34 @@ void CreateInputHistoFile(){
   RecoB0TreeOut->Branch("tagged_mass"   ,&tagged_mass    ,   "tagged_mass/D"   );
   RecoB0TreeOut->Branch("mumuMass"      ,&mumuMass       ,   "mumuMass/D"      );
   RecoB0TreeOut->Branch("mumuMassE"     ,&mumuMassE      ,   "mumuMassE/D"     );
+  RecoB0TreeOut->Branch("mumuPhi"	,&mumuPhi        ,   "mumuPhiD"        );
+  RecoB0TreeOut->Branch("mumuEta"	,&mumuEta        ,   "mumuEta/D"       );
+  RecoB0TreeOut->Branch("kstTrkmPt"	,&kstTrkmPt	 ,   "kstTrkmPt/D"     );
+  RecoB0TreeOut->Branch("kstTrkmPhi"	,&kstTrkmPhi	 ,   "kstTrkmPhi/D"    );
+  RecoB0TreeOut->Branch("kstTrkmEta"	,&kstTrkmEta	 ,   "kstTrkmEta/D"    );
+  RecoB0TreeOut->Branch("kstTrkpPt"	,&kstTrkpPt	 ,   "kstTrkpPt/D"     );
+  RecoB0TreeOut->Branch("kstTrkpPhi"	,&kstTrkpPhi	 ,   "kstTrkpPhi/D"    );
+  RecoB0TreeOut->Branch("kstTrkpEta"	,&kstTrkpEta	 ,   "kstTrkpEta/D"    );
+  RecoB0TreeOut->Branch("mmk1"          ,&mmk1           ,   "mmk1/D"          );
+  RecoB0TreeOut->Branch("mmk2"          ,&mmk2           ,   "mmk2/D"          );
 //
+  bool XCut=true;
+//
+  double x0Cut=-0.4;
+  double y0Cut= 0.3;
+  double x1Cut= 0.6;
+  double y1Cut=-0.1;
 //  
+  double x_0Cut=3;
+  double y_0Cut=3.8;
+  double x_1Cut=3.6;
+  double y_1Cut=4.8;
+  
+  double CutX1=3.2;
+  double CutX2=3.6;
+  double CutY1=4.7;
+  double CutY2=4.9;
+//
   int nentries = (int)RecoB0Tree->GetEntries();
   
    for (Int_t i=0;i<nentries;i++) { 
@@ -2456,8 +2623,15 @@ void CreateInputHistoFile(){
 //    double theBMass = tagged_mass;
 //     if (!(recQ2> 8.68&&recQ2<10.09)&&
 //         !(recQ2>12.86&&recQ2<14.18)){
+    if(Q2Bin==4){
+     passB0Psi =passB0Psi_jpsi;
+    }else if(Q2Bin==6){  
+     passB0Psi =passB0Psi_psip;
+    }else{  
+     passB0Psi =passB0Psi_lmnr;
+    }  
 	
-      if(passB0Psi_lmnr){
+      if(passB0Psi){
 
        if(tagged_mass>=XMinSign&&tagged_mass<=XMaxSign){
 //	if(dR_mum_trkm>0.0001&&
@@ -2469,8 +2643,60 @@ void CreateInputHistoFile(){
 //         dataMass->addEvent();
          if(recQ2>Q2Min&&recQ2<Q2Max){
      	  if(cos_theta_l>=XMinCosThetaL&&cos_theta_l<=XMaxCosThetaL&&cos_theta_k>=XMinCosThetaK&&cos_theta_k<=XMaxCosThetaK){
+	   if(Q2Bin==4){
+ 	     ROOT::Math::PtEtaPhiMVector JpsiVec (mumuPt,mumuEta,mumuPhi,mumuMass);
+
+ 	     ROOT::Math::PtEtaPhiMVector PipVec (kstTrkpPt,kstTrkpEta,kstTrkpPhi,piMass);
+ 	     ROOT::Math::PtEtaPhiMVector PimVec (kstTrkmPt,kstTrkmEta,kstTrkmPhi,piMass);
+ 
+ 	     ROOT::Math::PtEtaPhiMVector KpVec (kstTrkpPt,kstTrkpEta,kstTrkpPhi,kMass);
+ 	     ROOT::Math::PtEtaPhiMVector KmVec (kstTrkmPt,kstTrkmEta,kstTrkmPhi,kMass);
+	     mmpipi = (JpsiVec+PipVec+PimVec).mass();
+	     mmpip  = (JpsiVec+PipVec).mass();
+	     mmpim  = (JpsiVec+PimVec).mass();
+	     mmkp   = (JpsiVec+KpVec).mass();
+	     mmkm   = (JpsiVec+KmVec).mass();
+	     kstKp  = (KpVec+PimVec).mass();
+	     kstKm  = (KmVec+PipVec).mass();
+	     pipPt  = (PipVec).pt();
+	     pimPt  = (PimVec).pt();
+	     mmpipkm = (JpsiVec+PipVec+KmVec).mass();
+	     mmpimkp = (JpsiVec+PimVec+KpVec).mass();
+	     pipk = (PipVec+KmVec).mass();
+	     pimk = (PimVec+KpVec).mass();
+ 	     if (tagB0>0) {
+	      mmpi1=mmpip;
+	      mmpi2=mmpim;
+	      kst1 = kstKp;
+	      kst2 = kstKm;
+	      mmpiKaon=mmpipkm;
+	      mmpiKaon2=mmpimkp;
+	      pi1Pt=pipPt;
+	      pi2Pt=pimPt;
+	      piKaon = pipk;
+	      mmka1=mmkp;
+	      mmka2=mmkm;
+	     }else{
+	      mmpi1=mmpim;
+	      mmpi2=mmpip;
+	      kst1 = kstKm;
+	      kst2 = kstKp;
+	      mmpiKaon=mmpimkp;
+	      mmpiKaon2=mmpipkm;
+	      pi1Pt=pimPt;
+	      pi2Pt=pipPt;
+	      piKaon = pimk;
+	      mmka1=mmkm;
+	      mmka2=mmkp;
+	     }
+//	     XCut =((mmpi2>3.2&&mmpi2<3.6)&&mmka1>4.7&&mmka1<4.9)&&fabs(BpMass-mmpiKaon)<0.139&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0.09;
+//	     XCut =fabs(BpMass-mmpiKaon)<0.139&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0.09&&mmpiKaon2<5.15;
+	     XCut=(((BpMass-mmpiKaon)-y0Cut)/(y1Cut-y0Cut))<(((kst2-KstarMass)-x0Cut)/(x1Cut-x0Cut))&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0
+	          &&(mmpi2>CutX1&&mmpi2<CutX2)&&(mmka1>CutY1&&mmka1<CutY2)&&((mmka1-y_0Cut)/(y_1Cut-y_0Cut))>((mmpi2-x_0Cut)/(x_1Cut-x_0Cut));
+	   }  
+	   if(!XCut){
      	       RecoB0TreeOut->Fill();
-//
+           }
 //     	   }
 //     	 }
 //        }
@@ -2557,7 +2783,7 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
     } else {
      cout<<Form("Workspace Found!!! In file : %s\n",fitMassFileName)<<endl;
     }
-
+//
     if(!(w->loadSnapshot(Form("reference_fit_RT_%d",Q2Bin)))){
       cout<<Form("Snapshot %s Workspace not found!!!\n",Form("reference_fit_RT_%d",Q2Bin))<<endl;
       exit(1);
@@ -2577,7 +2803,34 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
 
     w->ls();
     RooRealVar* tagged_mass= w->var("tagged_mass");
+    double tagged_mass_rangeValMin=tagged_mass->getMin();
+    double tagged_mass_rangeValMax=tagged_mass->getMax();
+    std::cout<<Form("From workspace read tagged_mass in range [%f-%f]\n",tagged_mass_rangeValMin,tagged_mass_rangeValMax) <<std::endl;
+    if( (tagged_mass_rangeValMin!=tagged_mass_rangeMin) || (tagged_mass_rangeValMax!=tagged_mass_rangeMax) ){
+      std::cout<<Form("Warning! Force setting tagged_mass in range [%f-%f]\n",tagged_mass_rangeMin,tagged_mass_rangeMax) <<std::endl;
+     tagged_mass->setRange(tagged_mass_rangeMin,tagged_mass_rangeMax);
+    } 
+//    tagged_mass->setRange(XMinSign,XMaxSign);
+//    if(Q2Bin==0)  tagged_mass_rangeMin = 4.9;
     tagged_mass->setRange("full",tagged_mass_rangeMin,tagged_mass_rangeMax);
+   
+//    tagged_mass->setRange(XMinFull,XMaxFull);
+    
+//     RooRealVar *nsig_ref    = w->var("Yield");
+//     RooRealVar *nbkg_ref    = w->var("nbkg");
+// //
+//     if(!nsig_ref){
+//       cout<<"Yield from ref. fit  not found!!!\n"<<endl;
+//       exit(1);
+//     }else{
+//       cout<<Form("Yield from ref. fit found = %f\n",nsig_ref->getVal())<<endl;
+//     }
+//     if(!nbkg_ref){
+//       cout<<"BackYield form ref not found!!!\n"<<endl;
+//       exit(1);
+//     }else{
+//       cout<<Form("BackYield  found = %f\n",nbkg_ref->getVal())<<endl;
+//     }
    
     
     RooRealVar *yield_fromMC_RT    = w->var(Form("nRT_%d",Q2Bin));
@@ -2669,6 +2922,11 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
        c_alpha_rt1 = _constrainVar(alpha_rt1,w);
        c_alpha_rt2 = _constrainVar(alpha_rt2,w);
 //    
+//  workaround
+//    
+//       if(Q2Bin==7){
+//        n_rt2->setMax(60);
+//       }  
        c_n_rt1     = _constrainVar(n_rt1,w);
        c_n_rt2     = _constrainVar(n_rt2,w);
        if (Q2Bin < 4){ 
@@ -2713,11 +2971,17 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
     n_wt1	= !(w->var(Form("n_{1}^{WT%d}",Q2Bin)))?(w->var(Form("n_{WT1}^{%d}",Q2Bin))):(w->var(Form("n_{1}^{WT%d}",Q2Bin)));
     n_wt2	= !(w->var(Form("n_{2}^{WT%d}",Q2Bin)))?(w->var(Form("n_{WT2}^{%d}",Q2Bin))):(w->var(Form("n_{2}^{WT%d}",Q2Bin)));
 //    
+//  workaround
+//    
+//     if(Q2Bin==7){
+//       n_wt2->setMax(150);
+//     }  
+      
 //    
     RooAbsPdf *theWTgauss = w->pdf(Form("doublecb_%d",Q2Bin));
     if(!theWTgauss)  {
      cout<<"pdf theWTgauss not found!!!\n"<<endl;
-//     exit(1);
+     exit(1);
     } else{
      cout<<Form("pdf %s  found...\n",theWTgauss->GetName())<<endl;
     }
@@ -2743,6 +3007,7 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
     
 
     ////// creating constraints for the WT component
+//    RooProdPdf* c_WTgauss  = new RooProdPdf("c_WTgauss" , "c_WTgauss",RooArgList(*theWTgauss,*c_alpha_wt1,*c_n_wt1,*c_sigma_wt,*c_mean_wt,*c_alpha_wt2,*c_n_wt2  ) );     
     RooRealVar  frt("F_{RT}"			  , "frt"   , fraction->getVal() , 0, 1);
     RooGaussian c_frt("c_frt"           	   , "c_frt" , frt,  RooFit::RooConst(fraction->getVal()) , RooFit::RooConst(fraction->getError()) );
 //    RooAddPdf	signalFunction("sumgaus"	  , "rt+wt" , RooArgList(*theRTgauss,*theWTgauss), RooArgList(frt));
@@ -2779,35 +3044,58 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
     c_vars->add(frt);
 
 ////// now create background parametrization
-    RooRealVar*   slope= new RooRealVar("slope"      , "slope"           ,    0.5,   -10, 10);
-    RooExponential bkg_exp("bkg_exp"    , "exponential"     ,  *slope,   *tagged_mass  );
-    RooRealVar     pol_c1("p1"          , "coeff x^0 term"  ,    0.5,   -10, 10);
-    RooRealVar     pol_c2("p2"          , "coeff x^1 term"  ,    0.5,   -10, 10);
-    RooChebychev   bkg_pol("bkg_pol"    , "2nd order pol"   ,  *tagged_mass, RooArgList(pol_c1,pol_c2));
+    RooRealVar*  slope= new RooRealVar("slope"      , "slope"           ,    0.5,   -10, 10);
+//    RooExponential bkg_exp("bkg_exp"    , "exponential"     ,  *slope,   *tagged_mass  );
+//     RooRealVar     pol_c1("p1"          , "coeff x^0 term"  ,    0.5,   -10, 10);
+//     RooRealVar     pol_c2("p2"          , "coeff x^1 term"  ,    0.5,   -10, 10);
+//     RooRealVar     pol_c3("p3"          , "coeff x^2 term"  ,    0.5,   -10, 10);
+//     RooRealVar     pol_c4("p4"          , "coeff x^3 term"  ,    0.5,   -10, 10);
+// 
+//     RooChebychev   bkg_exp("bkg_exp"    , "2nd order pol"   ,  *tagged_mass, RooArgList(pol_c1,pol_c2,pol_c3,pol_c4));
+    RooRealVar*     pol_b0= new RooRealVar("pol_b0"          , "b0"  ,    0.5,  0., 1.);
+    RooRealVar*     pol_b1= new RooRealVar("pol_b1"          , "b1"  ,    0.1,  0., 1.);
+    RooRealVar*     pol_b2= new RooRealVar("pol_b2"          , "b2"  ,    0.1,  0., 1.);
+    RooRealVar*     pol_b3= new RooRealVar("pol_b3"          , "b3"  ,    0.01 , 0., 1.);
+    RooRealVar*     pol_b4= new RooRealVar("pol_b4"          , "b4"  ,    0.1 , 0., 1.);
+    if(Q2Bin!=4){
+     bkg_exp = new RooExponential("bkg_exp"    , "exponential"     ,  *slope,   *tagged_mass  );
+    }else{
+//     pol_b0->setConstant(kTRUE);
+//     pol_b4->setConstant(kTRUE);
+//     pol_b3->setConstant(kTRUE);
+     bkg_exp = new RooBernstein("bkg_exp"    , "bernstein pol"  ,  *tagged_mass, RooArgList(*pol_b0,*pol_b1,*pol_b2,*pol_b3,*pol_b4));
+    }
     
-//     RooRealVar     pol_b0("b0"          , "pol_b0"  ,    0.5,   0, 1);
-//     RooRealVar     pol_b1("b1"          , "pol_b1"  ,    0.5,   0, 1);
-//     RooRealVar     pol_b2("b2"          , "pol_b2"  ,    0.5,   0, 1);
-//     RooRealVar     pol_b3("b3"          , "pol_b3"  ,    0.5,   0, 1);
-//     RooRealVar     pol_b4("b4"          , "pol_b4"  ,    0.01,   0, 1);
-//     RooRealVar     pol_b5("b5"          , "pol_b5"  ,    0.5,   0, 1);
-//    RooBernstein   bkg_exp("bkg_exp"    , "bernstein pol"  ,  *tagged_mass, RooArgList(pol_b0,pol_b1,pol_b2,pol_b3,pol_b4,pol_b4));
-    
-    double yieldIni = 1000;
-    if(Q2Bin==4) yieldIni = 100000;
+    int NCPU=1;
+    if(NFactGen>1) NCPU=10;
+    double yieldIni = NFactGen*1000;
+    double backgIni = NFactGen*1000;
+    double yieldMin = 0.;
+    double backgMin = 0.;
+    double yieldMax = NFactGen*1000000.;
+    double backgMax = NFactGen*1000000.;
+   if(Q2Bin==4) {
+       yieldIni = yieldSignal;
+       backgIni = yieldBckg;
+       yieldMin = 100000.;
+       backgMin = 10000.;
+       yieldMax = 2000000.;
+       backgMax = 1000000.;
+       NCPU=60;
+    }   
    
-    RooRealVar     nsig("Yield"         , "signal frac"    ,    NFactGen*yieldIni,     0,   NFactGen*1000000);
-    RooRealVar     nbkg("nbkg"          , "bkg fraction"   ,    NFactGen*yieldIni,     0,   NFactGen*1000000);
+    RooRealVar     nsig("Yield"         , "signal frac"    ,   yieldIni,     yieldMin, yieldMax  );
+    RooRealVar     nbkg("nbkg"          , "bkg fraction"   ,   backgIni,     backgMin, backgMax  );
 
 //    RooRealVar     nsig("Yield"         , "signal frac"    ,    4000,     0,   1000000);
 //    RooRealVar     nbkg("nbkg"          , "bkg fraction"   ,    1000,     0,   550000);
-    int NCPU=1;
-    if(NFactGen>1) NCPU=10;
 // 
-
-    RooAddPdf fitFunction("fitfunction" , "fit function"  ,  RooArgList(c_signalFunction, bkg_exp), RooArgList(nsig, nbkg));
-
-
+//    RooProdPdf  c_signalFunction("c_signalFunction", "c_signalFunction", RooArgList(signalFunction, c_frt))   ;  
+//    RooProdPdf c_signalFunction("c_signalFunction", "c_signalFunction", *c_pdfs);
+    RooAddPdf fitFunction("fitfunction" , "fit function"  ,  RooArgList(c_signalFunction, *bkg_exp), RooArgList(nsig, nbkg));
+//
+//    RooAddPdf fitFunction("fitfunction" , "fit function"  ,  RooArgList(signalFunction, bkg_pol), RooArgList(nsig, nbkg));
+//     tagged_mass->setRange("fullRedefined",XMinSBL,XMaxSBR);
     RooFitResult* r = fitFunction.fitTo(*data, 
     		       RooFit::Extended(kTRUE), 
     		       RooFit::NumCPU(NCPU),
@@ -2816,16 +3104,44 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
     		       RooFit::Verbose(kFALSE),
     		       RooFit::Constrain(*c_vars)
     		      );
+     		      
    r->Print();		      
 //
 //
 // save a clone of bkg_exp 
 //
-     bkg_mass_sb = (RooExponential*)bkg_exp.clone(Form("bkg_mass_sb_bin%d_%s",Q2Bin,RunEra) );
+
+    if(Q2Bin!=4){
+     bkg_mass_sb = (RooExponential*)bkg_exp->clone(Form("bkg_mass_sb_bin%d_%s",Q2Bin,RunEra) );
+    }else{ 
+     bkg_mass_sb = (RooBernstein*)  bkg_exp->clone(Form("bkg_mass_sb_bin%d_%s",Q2Bin,RunEra) );
      bkg_mass_sb->setNormRange("full");
-//
-//
-//     
+    } 
+//   RooAbsBinning binning = (tagged_mass->getBinning("full")) ;
+//     data->getRange(*tagged_mass,tagged_mass_rangeMin,tagged_mass_rangeMax);
+//    std::cout<<Form("%f<[fit mass range]<%f",tagged_mass_rangeMin,tagged_mass_rangeMax)<<std::endl; 
+//    tagged_mass_rangeMin=tagged_mass->getMin("full");
+//    tagged_mass_rangeMax=tagged_mass->getMax("full");
+//    std::cout<<Form("%f<[fit mass range]<%f",tagged_mass_rangeMin,tagged_mass_rangeMax)<<std::endl; 
+
+//      cout<<"----"<<endl;
+//       exit(1);
+//      data->Print("V");
+//      c2->cd();
+//      RooPlot* frame = tagged_mass->frame( );
+//      data->plotOn(frame, Binning(35), MarkerSize(.7));
+//     fitFunction.plotOn(frame);
+//     drawPdfComponents(fitFunction, frame, ROOT.kAzure, RooFit.NormRange("full"), RooFit.Range("full"), isData = True);
+// 
+//     fitFunction.paramOn(frame,  RooFit.Layout(0.62,0.86,0.88));
+//     frame.Draw();
+//     niceFrame(frame, '')
+//     frame. addObject(_writeFitStatus(r))
+// 
+//     if not args.year=='test':  writeCMS(frame, args.year, [ q2binning[ibin], q2binning[ibin+1] ])
+//     frame.Draw()
+ //    c2->Print("test.pdf");
+ 
      double B0SigmaTemp=0.;
      c2->cd();
      TLegend* leg_sign = new TLegend(0.30,0.48,0.90,0.90);
@@ -2872,12 +3188,21 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
      }else{
       leg_sign->AddEntry(masHist ,Form( "#sigma^{WT%d}#scale[0.6]{1}_{B^{0}} =   %5.5f Fixed",Q2Bin,sigma_wt->getVal()),"");
      }
+//      if(sigma_wt2){
+//       if(sigma_wt2->getError()!=XStepMinuit){
+//       leg_sign->AddEntry(masHist ,Form( "#sigma_{2}^{WT%d}#scale[0.6]{2}_{B^{0}} =   %5.5f  #pm %5.5f",Q2Bin,sigma_wt2->getVal(),sigma_wt2->getError()),"");
+// //   	}else{
+// //    	 leg_sign->AddEntry(masHist ,Form( "#sigma#scale[0.6]{2}_{B^{0}} =   %5.5f Fixed",sigma2.getVal()),"");
+//       }
+//     } 
      double min_CBGaus_rt=0;
      double max_CBGaus_rt=0;
 //      float x1zoom=5.1;
 //      float x2zoom=5.4;
      float x1zoom=XMinSign;
      float x2zoom=XMaxSign;
+//      RooPlot *rframe = tagged_mass->frame(Title("Signal models RT"));
+//      RooPlot *wframe = tagged_mass->frame(Title("Signal models WT"));
      RooAbsPdf *gaussRT_study = 0;
      RooGaussian *gaussRT_study1 = 0;
      RooGaussian *gaussRT_study2 = 0;
@@ -2945,7 +3270,14 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
 //     theWTgauss->plotOn(wframe,LineColor(kRed));
      TF1 * Func_theWTgauss    = theWTgauss   ->asTF( RooArgList(*tagged_mass) );
      TF1 * Func_gaussWT_study = gaussWT_study->asTF( RooArgList(*tagged_mass) );
-     Func_theWTgauss->SetTitle("WT Model");
+      Func_theWTgauss->SetTitle("WT Model");
+//     RooAbsReal* IntegtheWTgauss    = theWTgauss->createIntegral(*tagged_mass,*tagged_mass,"full");
+//     double scal = sigma_wt->getVal()*sqrt(2*TMath::Pi())*theWTgauss->getVal(RooArgList(*mean_wt));
+//     cout<<IntegtheWTgauss->getVal()<<" "<<f->GetMaximum()<<endl;exit(0);
+//     double scal = sigma_wt->getVal()*sqrt(2*TMath::Pi())*theWTgauss->getVal(RooArgList(*mean_wt));
+//     double scal = IntegtheWTgauss->getVal()/gaussWT_study->getVal(RooArgList(*mean_wt));
+//     gaussWT_study->plotOn(wframe,LineColor(kBlue),Normalization(1/IntegtheWTgauss->getVal()));
+//     theWTgauss->plotOn(wframe, Range(min_CBGaus_wt,max_CBGaus_wt,kFALSE),FillColor(kRed),DrawOption("F"),FillStyle(3013),VLines());
      TLegend* leg_wt = new TLegend(0.70,0.70,0.90,0.90);
      leg_wt->SetTextSize(0.025) ;
      leg_wt->SetTextAlign(31);
@@ -3006,8 +3338,12 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
 
      std::cout<<Form("B0SigmaRT = %f B0sigma_wt = %f B0SigmaTot = %f",B0SigmaRT,B0sigma_wt,B0SigmaTemp) <<std::endl;
 
+//     tagged_mass->setRange("SignLeft" ,mean_rt->getVal(),XMaxSign);
+//     tagged_mass->setRange("SignRight",XMinSign,mean_rt->getVal());
+//      tagged_mass->setRange(5.1,5.4);
 //
      TCanvas* ccdf_signal = new TCanvas("ccdf_signal","cdf",200,10,1200,600);
+//     ccdf_signal->Divide(2,2);
      TCanvas* ccdf_rt = new TCanvas("ccdf_rt","cdf RT",200,10,1200,600);
      ccdf_rt->Divide(2,2);
      
@@ -3028,13 +3364,88 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
 //      double SigmaEstR = 0;
      Func_signal->SetLineColor(kRed);
      Func_signal->SetLineWidth(1.0);
+//      for(double iSigma=1;iSigma<5;iSigma++){
+//      
+//        integTails= TMath::Erfc(iSigma/sqrt(2));//  Erfc(x) = (2/sqrt(pi)) Integral(exp(-t^2))dt between x and infinity; t=x/sqrt(2)
+//        XLeftLim  = Func_signalCdf->GetX(integTails/2.);
+//        XRightLim = Func_signalCdf->GetX(1-integTails/2.);
+//        SigmaEstL = (fabs(mean_rt->getVal()-XLeftLim))/iSigma;
+//        SigmaEstR = (fabs(mean_rt->getVal()-XRightLim))/iSigma;
+//        std::cout<<Form("Full signal %f%% [%iSigma gauss sigma] in the Range %f<mass<%f average sigmaL=%f sigmaR=%f",1-integTails,int(iSigma),XLeftLim,XRightLim,SigmaEstL,SigmaEstR)<<std::endl;
+//        ccdf_signal->cd(iSigma);
+//        Func_signal->SetRange(4.8,5.6);
+//        Func_signal->SetMaximum(1.);
+//        Func_signal->Draw();
+//        TF1* Clone_signal =  (TF1*) Func_signal->Clone();
+//        Clone_signal->SetRange(XLeftLim,XRightLim);
+//        Clone_signal->SetFillColor(kBlue);
+//        Clone_signal->SetFillStyle(3013);
+//        Clone_signal->SetLineWidth(1.);
+//        Clone_signal->Draw("SAME FC");
+// //
+//        ccdf_signal_zoom->cd(iSigma);
+//        Func_signal->SetRange(4.8,5.6);
+//        Func_signal->SetMaximum(0.2);
+//        Func_signal->Draw();
+//        Clone_signal =  (TF1*) Func_signal->Clone();
+//        Clone_signal->SetRange(XLeftLim,XRightLim);
+//        Clone_signal->Draw("SAME FC");
+//        XLeftLim  = Func_theRTgaussCdf->GetX(integTails/2.);
+//        XRightLim = Func_theRTgaussCdf->GetX(1-integTails/2.);
+//        SigmaEstL = (fabs(mean_rt->getVal()-XLeftLim))/iSigma;
+//        SigmaEstR = (fabs(mean_rt->getVal()-XRightLim))/iSigma;
+//        std::cout<<Form("RT   signal %f%% [%iSigma gauss sigma] in the Range %f<mass<%f average sigmaL=%f sigmaR=%f",1-integTails,int(iSigma),XLeftLim,XRightLim,SigmaEstL,SigmaEstR)<<std::endl;
+//
+//        ccdf_rt->cd(iSigma);
+//        Func_theRTgauss->SetRange(5.0,5.6);
+//        Func_theRTgauss->SetMaximum(1.);
+//        Func_theRTgauss->Draw();
+//        TF1* Clone_theRTgauss =  (TF1*) Func_theRTgauss->Clone();
+//        Clone_theRTgauss->SetRange(XLeftLim,XRightLim);
+//        Clone_theRTgauss->SetFillColor(kBlue);
+//        Clone_theRTgauss->SetFillStyle(3013);
+//        Clone_theRTgauss->SetLineWidth(1.);
+//        Clone_theRTgauss->Draw("SAME FC");
+//        ccdf_rt->Update();
+//        //
+//        ccdf_rt_zoom->cd(iSigma);
+//        Func_theRTgauss->SetRange(5.0,5.6);
+//        Func_theRTgauss->SetMaximum(0.3);
+//        Func_theRTgauss->Draw();
+//        Clone_theRTgauss =  (TF1*) Func_theRTgauss->Clone();
+//        Clone_theRTgauss->SetRange(XLeftLim,XRightLim);
+//        Clone_theRTgauss->Draw("SAME FC");
+//        ccdf_rt_zoom->Update();
+//     }
+//      ccdf_signal  ->Print(Form("cdf_signal_Q2Bin_%d.png",Q2Bin));
+//      ccdf_rt->Print(Form("cdf_rt_Q2Bin_%d.png",Q2Bin));
+//      ccdf_signal_zoom  ->Print(Form("cdf_signal_zoom_Q2Bin_%d.png",Q2Bin));
+//      ccdf_rt_zoom->Print(Form("cdf_rt_zoom_Q2Bin_%d.png",Q2Bin));
+//     tagged_mass->setRange("testRange",XLeftLim,XRightLim);
+//     RooAbsReal*  testRTRange= theRTgauss->createIntegral(*tagged_mass,NormSet(*tagged_mass),Range("testRange"));
+//     std::cout<<Form(" %f%% in the Range %f<mass<%f",testRTRange->getVal(),XLeftLim,XRightLim)<<std::endl;
+//      TCanvas* ccdf = new TCanvas("ccdf","cdf",200,10,750,800);
+//      ccdf->cd();
+//      Func_signalCdf->Draw();
+//      ccdf->Print("cdf.png");
+     
+
+
+//      tagged_mass->setRange("3sigmaintegral",mean_rt->getVal()-3*B0SigmaTemp,mean_rt->getVal()+3*B0SigmaTemp);
+//      RooAbsReal* BckgInt3Sigma = bkg_exp->createIntegral(*tagged_mass,*tagged_mass,"3sigmaintegral");
+//      RooAbsReal* SignInt3Sigma = c_signalFunction.createIntegral(*tagged_mass,*tagged_mass,"3sigmaintegral");
+//      NBckgInt3Sigma = BckgInt3Sigma->getVal()*nbkg.getVal();
+//      NSignInt3Sigma = SignInt3Sigma->getVal()*nsig.getVal();
+//      std::cout<<Form("Bckg event +/- 3 sigma_w from mean RT = %f",NBckgInt3Sigma) <<std::endl;
+//      std::cout<<Form("Sign event +/- 3 sigma_w from mean RT = %f",SignInt3Sigma) <<std::endl;
+//      std::cout<<Form("Sign %% in +/- 3 sigma_w from mean RT = %f",SignInt3Sigma->getVal()) <<std::endl;
      integTails= TMath::Erfc(sqrt(2));
 //      XLeftLim  = Func_theRTgaussCdf->GetX(integTails/2.);
 //      XRightLim = Func_theRTgaussCdf->GetX(1-integTails/2.);
      XLeftSet  = Func_signalCdf->GetX(integTails/2.);
      XRightSet = Func_signalCdf->GetX(1-integTails/2.);
      tagged_mass->setRange("2sigmaRTintegral",XLeftSet,XRightSet);
-     RooAbsReal* BckgInt2SigmaRT = bkg_exp.createIntegral(*tagged_mass,*tagged_mass,"2sigmaRTintegral");
+     RooAbsReal* BckgInt2SigmaRT = bkg_exp->createIntegral(*tagged_mass,*tagged_mass,"2sigmaRTintegral");
      RooAbsReal* SignInt2SigmaRT = c_signalFunction.createIntegral(*tagged_mass,*tagged_mass,"2sigmaRTintegral");
      NBckgInt2Sigma = BckgInt2SigmaRT->getVal()*nbkg.getVal();
      NSignInt2Sigma = SignInt2SigmaRT->getVal()*nsig.getVal();
@@ -3132,21 +3543,21 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
      
      double tagged_mass_rangeFitMin=tagged_mass->getMin("full");
      double tagged_mass_rangeFitMax=tagged_mass->getMax("full");
-     double tagged_mass_rangeValMin=tagged_mass->getMin();
-     double tagged_mass_rangeValMax=tagged_mass->getMax();
+     tagged_mass_rangeValMin=tagged_mass->getMin();
+     tagged_mass_rangeValMax=tagged_mass->getMax();
      std::cout<<Form("%f<[tagged_mass fit mass range]<%f",tagged_mass_rangeFitMin,tagged_mass_rangeFitMax)<<std::endl; 
      std::cout<<Form("%f<[tagged_mass val mass range]<%f",tagged_mass_rangeValMin,tagged_mass_rangeValMax)<<std::endl; 
      
 //     RooExponential* bkgEXP = new RooExponential(bkg_exp);
   
-//      RooAbsReal* BckgAll = bkg_exp.createIntegral(*tagged_mass);
-//      RooAbsReal* BckgFull = bkg_exp.createIntegral(*tagged_massF);
-//      RooAbsReal* BckgFits = bkg_exp.createIntegral(*tagged_massS);
+//      RooAbsReal* BckgAll = bkg_exp->createIntegral(*tagged_mass);
+//      RooAbsReal* BckgFull = bkg_exp->createIntegral(*tagged_massF);
+//      RooAbsReal* BckgFits = bkg_exp->createIntegral(*tagged_massS);
 //      std::cout<<Form("Integrals All=%f Fits=%f and Full=%f",BckgAll->getVal(),BckgFits->getVal(),BckgFull->getVal())<<std::endl; 
      
-     RooAbsReal* BckgSBL = bkg_exp.createIntegral(*tagged_mass,*tagged_mass,"SBLeft");
-//     RooAbsReal* BckgSBL = bkg_exp.createIntegral(*tagged_mass,NormSet(*tagged_mass),Range("SBLeft"));
-     RooAbsReal* BckgSBR = bkg_exp.createIntegral(*tagged_mass,*tagged_mass,"SBRight");
+     RooAbsReal* BckgSBL = bkg_exp->createIntegral(*tagged_mass,*tagged_mass,"SBLeft");
+//     RooAbsReal* BckgSBL = bkg_exp->createIntegral(*tagged_mass,NormSet(*tagged_mass),Range("SBLeft"));
+     RooAbsReal* BckgSBR = bkg_exp->createIntegral(*tagged_mass,*tagged_mass,"SBRight");
      double BckgEventsSBL = BckgSBL->getVal()*nbkg.getVal();
      double BckgEventsSBR = BckgSBR->getVal()*nbkg.getVal();
 //     
@@ -3174,7 +3585,7 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
      double RealEventsSBR  = data->sumEntries(Form("tagged_mass>%f&&tagged_mass<%f",XMinSBR,XMaxSBR)) ;
 //
      RooAbsReal* SignalFull  = c_signalFunction.createIntegral(*tagged_mass,*tagged_mass,"full");
-//     RooAbsReal* BckgFull    = bkg_exp.createIntegral(*tagged_mass,*tagged_mass,"full");
+//     RooAbsReal* BckgFull    = bkg_exp->createIntegral(*tagged_mass,*tagged_mass,"full");
      RooAbsReal* ModelFull   = fitFunction.createIntegral(*tagged_mass,*tagged_mass,"full");
 
 //     
@@ -3185,7 +3596,7 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
      std::cout<<Form("========> real	events SB Left = %f",RealEventsSBL ) <<std::endl;
      std::cout<<Form("========> real	events SB Right= %f",RealEventsSBR ) <<std::endl;
      std::cout<<Form("========> real	events SB Total= %f",RealEventsSBL+RealEventsSBR ) <<std::endl;
-     std::cout<<Form("========> real	all events inside [full] range Total=%f",data->sumEntries(Form("tagged_mass>%f&&tagged_mass<%f",tagged_mass_rangeMin,tagged_mass_rangeMax)) ) <<std::endl;
+     std::cout<<Form("========> real	all events inside [full] range Total= %f",data->sumEntries(Form("tagged_mass>%f&&tagged_mass<%f",tagged_mass_rangeMin,tagged_mass_rangeMax)) ) <<std::endl;
      std::cout<<Form("========> Fit	all events inside [full] range Total= %f",ModelFull->getVal()*(nsig.getVal()+nbkg.getVal())) <<std::endl;
      std::cout<<Form("========> real	all events Total= %f",data->sumEntries(Form("tagged_mass>%f&&tagged_mass<%f",XMinSign,XMaxSign)) ) <<std::endl;
      std::cout<<Form("========> Fit	all events Total= %f",(nsig.getVal()+nbkg.getVal())) <<std::endl;
@@ -3222,18 +3633,26 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
      
      double xbinw = pdfHist->GetXaxis()->GetBinWidth(1);
      cout<<"Binw pdfHist ="<<xbinw<<endl;
+//      for (int i = 1; pdfHist->GetNbinsX(); ++i) {
+//         double xmass = xbinw/2.+(i-1)*xbinw;
+// //      const RooArgSet * dataLoad = data->get (i);
+// //      double xmass = dataLoad->getRealValue(tagged_mass->GetName());
+// 	pdfHist->Fill(xmass, fitFunction.evaluate() );
+// 	sigHist->Fill(xmass, c_signalFunction.evaluate());
+// 	bkgHist->Fill(xmass, c_frt.evaluate());
+//      }
      double NStepMass  = pdfHist->GetNbinsX();
      double NBINFactor = NStepMass/masHist->GetNbinsX();
-     
      fitFunction.fillHistogram(pdfHist,*tagged_mass);
      c_signalFunction.fillHistogram(sigHist,*tagged_mass);
-     bkg_exp.fillHistogram(bkgHist,*tagged_mass);
+     bkg_exp->fillHistogram(bkgHist,*tagged_mass);
      tagged_mass->setRange(XMinSign,XMaxSign);
-     RooAbsReal* BckgFullW   = bkg_exp.createIntegral(*tagged_mass,*tagged_mass);
+     RooAbsReal* BckgFullW   = bkg_exp->createIntegral(*tagged_mass,*tagged_mass);
      RooAbsReal* SignalFullW = c_signalFunction.createIntegral(*tagged_mass,*tagged_mass);
      RooAbsReal* ModelFullW  = fitFunction.createIntegral(*tagged_mass,*tagged_mass);
      
-     RooAbsReal* BckgFullS   = bkg_exp.createIntegral(*tagged_mass,*tagged_mass,"full");
+//     tagged_mass->setRange("full1",5.0,5.6);
+     RooAbsReal* BckgFullS   = bkg_exp->createIntegral(*tagged_mass,*tagged_mass,"full");
      RooAbsReal* SignalFullS = c_signalFunction.createIntegral(*tagged_mass,*tagged_mass,"full");
      RooAbsReal* ModelFullS  = fitFunction.createIntegral(*tagged_mass,*tagged_mass,"full");
      
@@ -3244,13 +3663,23 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
      int MinBinRangeFit = pdfHist->GetXaxis()->FindBin(tagged_mass_rangeMin);
      int MaxBinRangeFit = pdfHist->GetXaxis()->FindBin(tagged_mass_rangeMax);
      std::cout<<Form("pdfHist (=model of mass spectrum) MinBinRangeFit = %d MaxBinRangeFit = %d NumBins = %d",MinBinRangeFit,MaxBinRangeFit,pdfHist->GetNbinsX()) <<std::endl;
-
+//      pdfHist->Scale(NBINFactor*(nsig.getVal()+nbkg.getVal())*scaleModelW);
+//      sigHist->Scale(NBINFactor*(nsig.getVal())*scaleSignalW);
+//      bkgHist->Scale(NBINFactor*(nbkg.getVal())*scaleBckgW);
      pdfHist->Scale(NBINFactor*(nsig.getVal()+nbkg.getVal()));
      sigHist->Scale(NBINFactor*(nsig.getVal()));
      bkgHist->Scale(NBINFactor*(nbkg.getVal()));
+//     cout<< Form("Integ Model (4.9-5.6) =%f  Integ Model (5.0-5.6) =%f scaleModelW=%f", ModelFullW->getVal(),ModelFullS->getVal(),scaleModelW)<<endl;
+//     cout<< Form("Integ Signal(4.9-5.6) =%f  Integ Signal(5.0-5.6) =%f scaleSignalW=%f", SignalFullW->getVal(),SignalFullS->getVal(),scaleSignalW)<<endl;
+//     cout<< Form("Integ Bckg  (4.9-5.6) =%f  Integ Bckg  (5.0-5.6) =%f scaleBckgW=%f", BckgFullW->getVal(),BckgFullS->getVal(),scaleBckgW)<<endl;
      cout<< Form("Integ Model (%f-%f) =%f  Integ Model (%f-%f) =%f scaleModelW=%f" ,XMinSign,XMaxSign,ModelFullW->getVal() ,tagged_mass_rangeMin,tagged_mass_rangeMax,ModelFullS->getVal() ,scaleModelW)<<endl;
      cout<< Form("Integ Signal(%f-%f) =%f  Integ Signal(%f-%f) =%f scaleSignalW=%f",XMinSign,XMaxSign,SignalFullW->getVal(),tagged_mass_rangeMin,tagged_mass_rangeMax,SignalFullS->getVal(),scaleSignalW)<<endl;
      cout<< Form("Integ Bckg  (%f-%f) =%f  Integ Bckg  (%f-%f) =%f scaleBckgW=%f"  ,XMinSign,XMaxSign,BckgFullW->getVal()  ,tagged_mass_rangeMin,tagged_mass_rangeMax,BckgFullS->getVal(),scaleBckgW)<<endl;
+//exit(1);
+   //   int MinBinSBL = bkgHist->GetXaxis()->FindBin(mean_rt->getVal()-3*B0SigmaTemp);
+//      int MaxBinSBL = bkgHist->GetXaxis()->FindBin(mean_rt->getVal()+3*B0SigmaTemp);
+//      double BckgIntSBL= nbkg.getVal()*bkgHist->Integral(MinBinSBL,MaxBinSBL)/bkgHist->Integral(MinBinRangeFit,MaxBinRangeFit);
+//      std::cout<<Form("pdfHist (=model of mass spectrum) MinBinSBL = %d MaxBinSBL = %d Integ = %f",MinBinSBL,MaxBinSBL,BckgIntSBL) <<std::endl;
 //  
      masHist->GetXaxis()->SetTitle("Mass (GeV/c^{2})");
      masHist->SetMarkerStyle(8);
@@ -3281,7 +3710,7 @@ double FitMassSpectrumRoofit(RooDataSet* data, TCanvas* c2, TH1D* masHist, TH1D*
       ivolte++;
       
       tagged_mass->setRange("FullMass",XMinSign,XMaxSign);
-      RooAbsReal* BckgFullMass = bkg_exp.createIntegral(*tagged_mass,*tagged_mass,"FullMass");
+      RooAbsReal* BckgFullMass = bkg_exp->createIntegral(*tagged_mass,*tagged_mass,"FullMass");
       RooAbsReal* SignFullMass = c_signalFunction.createIntegral(*tagged_mass,*tagged_mass,"FullMass");
       int NBckgIntFull = BckgFullMass->getVal()*nbkg.getVal();      
       int NSignIntFull = SignFullMass->getVal()*nsig.getVal();      
@@ -3312,14 +3741,17 @@ RooGaussian* _constrainVar(RooRealVar *var,RooWorkspace *w){
                                 RooConst( var->getVal() ), 
                                 RooConst( var->getError() ) 
                                 ) ;
-    double checkMax = var->getVal()+ var->getError();			      
-    if(	var->getMax()<	checkMax) {
-     std::cout<< Form("Warning in _constrainVar: ridefine Max limit for %s, from %f ==> %f\n",var->GetName(),var->getMax(),checkMax);
-     var->setMax(checkMax) ;
-    }	      
     std::cout<< Form("constraining var %s: %f with uncertainty %f - limits [%f , %f]",var->GetName(),c_val.getVal(),c_err.getVal(),var->getMin(),var->getMax())<<std::endl;  
+    double checkMax = var->getVal()+ 7*var->getError();			      
+    double checkMin = var->getVal()- 7*var->getError();			      
+    std::cout<< Form("Warning in _constrainVar: limits for %s, from [%f,%f] ==> [%f,%f]\n",var->GetName(),var->getMin(),var->getMax(),checkMin,checkMax);
+//    var->setMax(checkMax) ;	     
+//    var->setMin(checkMin) ;	     
+//    std::cout<< Form("Warning: redifine limits var %s: %f with uncertainty %f - limits [%f , %f]",var->GetName(),c_val.getVal(),c_err.getVal(),var->getMin(),var->getMax())<<std::endl;  
+                            
     return gauss_constr;
 }                           
+
 //=========================================================================================
 //
 //=========================================================================================
@@ -3490,5 +3922,22 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
     }
 }
 
+//===============================================================================================================
+void replaceChar(char * txt,const  char * txt1,const  char * txt2) {
 
+  std::stringstream sss,sss1,sss2;
+  sss<<txt;
+  sss1<<txt1;
+  sss2<<txt2;
+  std::string ss=sss.str();
+  replaceAll( ss,  sss1.str(), sss2.str());
+  strcpy(txt,ss.c_str());
+  sss.str("");
+  sss.clear();
+  sss1.str("");
+  sss1.clear();
+  sss2.str("");
+  sss2.clear();
+  printf ("replaceChar output=>%s\n",txt);
+}  
 

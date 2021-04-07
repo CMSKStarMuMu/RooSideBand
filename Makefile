@@ -3,7 +3,7 @@ OBJECTS := $(wildcard *.o)
 
 #root_stuff (root libraries and needed root options)
 ROOTLIBS := $(shell root-config --glibs)
-ROOTFLAGS := $(shell root-config --cflags --libs) -lFoam -lRooFit -lRooFitCore
+ROOTFLAGS := $(shell root-config --cflags --libs) -lFoam -lRooFit -lRooFitCore -lGenVector
 ROOTCINT := $(shell which rootcint)
 
 #exe_files
