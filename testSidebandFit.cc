@@ -2607,9 +2607,6 @@ void CreateInputHistoFile(){
    for (Int_t i=0;i<nentries;i++) { 
     RecoB0Tree->GetEntry(i);
     recQ2         =  mumuMass*mumuMass  ;
-//    double theBMass = tagged_mass;
-//     if (!(recQ2> 8.68&&recQ2<10.09)&&
-//         !(recQ2>12.86&&recQ2<14.18)){
     if(Q2Bin==4){
      passB0Psi =passB0Psi_jpsi;
     }else if(Q2Bin==6){  
@@ -2621,13 +2618,7 @@ void CreateInputHistoFile(){
       if(passB0Psi){
 
        if(tagged_mass>=XMinSign&&tagged_mass<=XMaxSign){
-//	if(dR_mum_trkm>0.0001&&
-//	   dR_mup_trkp>0.0001
-//	  ){
-//
-//         xMass.setValue(tagged_mass);
          HxMass  ->Fill(tagged_mass);
-//         dataMass->addEvent();
          if(recQ2>Q2Min&&recQ2<Q2Max){
      	  if(cos_theta_l>=XMinCosThetaL&&cos_theta_l<=XMaxCosThetaL&&cos_theta_k>=XMinCosThetaK&&cos_theta_k<=XMaxCosThetaK){
 	   if(Q2Bin==4){
@@ -2638,19 +2629,14 @@ void CreateInputHistoFile(){
  
  	     ROOT::Math::PtEtaPhiMVector KpVec (kstTrkpPt,kstTrkpEta,kstTrkpPhi,kMass);
  	     ROOT::Math::PtEtaPhiMVector KmVec (kstTrkmPt,kstTrkmEta,kstTrkmPhi,kMass);
-//	     mmpipi = (JpsiVec+PipVec+PimVec).mass();
 	     mmpip  = (JpsiVec+PipVec).mass();
 	     mmpim  = (JpsiVec+PimVec).mass();
 	     mmkp   = (JpsiVec+KpVec).mass();
 	     mmkm   = (JpsiVec+KmVec).mass();
-//	     kstKp  = (KpVec+PimVec).mass();
-//	     kstKm  = (KmVec+PipVec).mass();
 	     pipPt  = (PipVec).pt();
 	     pimPt  = (PimVec).pt();
 	     mmpipkm = (JpsiVec+PipVec+KmVec).mass();
 	     mmpimkp = (JpsiVec+PimVec+KpVec).mass();
-//	     pipk = (PipVec+KmVec).mass();
-//	     pimk = (PimVec+KpVec).mass();
  	     if (tagB0>0) {
 	      mmpi2=mmpim;
 	      mmpiKaon=mmpipkm;
@@ -2664,21 +2650,15 @@ void CreateInputHistoFile(){
 	      pi2Pt=pipPt;
 	      mmka1=mmkm;
 	     }
-//	     XCut =((mmpi2>3.2&&mmpi2<3.6)&&mmka1>4.7&&mmka1<4.9)&&fabs(BpMass-mmpiKaon)<0.139&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0.09;
-//	     XCut =fabs(BpMass-mmpiKaon)<0.139&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0.09&&mmpiKaon2<5.15;
 	     XCut=(((BpMass-mmpiKaon)-y0Cut)/(y1Cut-y0Cut))<(((kst2-KstarMass)-x0Cut)/(x1Cut-x0Cut))&&pi1Pt>pi2Pt&&(kst2-KstarMass)>0
 	          &&(mmpi2>CutX1&&mmpi2<CutX2)&&(mmka1>CutY1&&mmka1<CutY2)&&((mmka1-y_0Cut)/(y_1Cut-y_0Cut))>((mmpi2-x_0Cut)/(x_1Cut-x_0Cut));
 	   }  
 	   if(!XCut){
      	       RecoB0TreeOut->Fill();
            }
-//     	   }
-//     	 }
-//        }
        }
       } 
      }
-//     }
     }
    }
   
