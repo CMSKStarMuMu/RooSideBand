@@ -2520,7 +2520,7 @@ void CreateInputHistoFile(){
   double piMass = 0.13957039;
   double kMass = 0.493677;
   double BpMass = 5.2791;
-  double KstarMass = 0.892;
+  double KstarMass = 0.896;
   double mmpip;
   double mmpim;
   double mmpipkm;
@@ -2540,6 +2540,8 @@ void CreateInputHistoFile(){
   double mmkp =0;
   double mmkm =0;
   double mmka1 =0;
+  double kstKp =0;
+  double kstKm =0;
   double kst2  =0;
 //
   RecoB0Tree->SetBranchAddress("tagB0"         ,&tagB0);
@@ -2585,7 +2587,7 @@ void CreateInputHistoFile(){
   RecoB0TreeOut->Branch("mmk1"          ,&mmk1           ,   "mmk1/D"          );
   RecoB0TreeOut->Branch("mmk2"          ,&mmk2           ,   "mmk2/D"          );
 //
-  bool XCut=true;
+  bool XCut=false;
 //
   double x0Cut=-0.4;
   double y0Cut= 0.3;
@@ -2633,18 +2635,22 @@ void CreateInputHistoFile(){
 	     mmpim  = (JpsiVec+PimVec).mass();
 	     mmkp   = (JpsiVec+KpVec).mass();
 	     mmkm   = (JpsiVec+KmVec).mass();
+	     kstKp  = (KpVec+PimVec).mass();
+	     kstKm  = (KmVec+PipVec).mass();
 	     pipPt  = (PipVec).pt();
 	     pimPt  = (PimVec).pt();
 	     mmpipkm = (JpsiVec+PipVec+KmVec).mass();
 	     mmpimkp = (JpsiVec+PimVec+KpVec).mass();
  	     if (tagB0>0) {
 	      mmpi2=mmpim;
+	      kst2 =kstKm;
 	      mmpiKaon=mmpipkm;
 	      pi1Pt=pipPt;
 	      pi2Pt=pimPt;
 	      mmka1=mmkp;
 	     }else{
 	      mmpi2=mmpip;
+   	      kst2 =kstKp;
 	      mmpiKaon=mmpimkp;
 	      pi1Pt=pimPt;
 	      pi2Pt=pipPt;
