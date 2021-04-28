@@ -60,6 +60,7 @@
 #include <TFitter.h>
 #include "Fit/Fitter.h"
 #include <TMatrixDSym.h>
+#include <TMatrixD.h>
 #include <TBinomialEfficiencyFitter.h>
 #include <TKDTreeBinning.h>
 #include <TH2Poly.h>
@@ -123,9 +124,11 @@ char PNGNameReadSB3D[400] = "readSideband";
 RooDataSet *geneDataNew=0;
 RooDataSet *geneMassNew=0;
 RooBernsteinSideband *BernSideBand=0;
-RooExponential *bkg_mass_sb=0;
+RooAbsPdf *bkg_mass_sb=0;
+//RooExponential *bkg_mass_sb=0;
 RooRealVar *max_sbl=0;
 RooRealVar *min_sbr=0;
+TMatrixD *covMatrix =0;
 
 int    xCosLHBin =  25;
 int    xCosKHBin =  25;
@@ -170,13 +173,12 @@ int main (int argc, char** argv) {
   
   return 0 ;
 }
-
 void  ReadSBModel(){
     RooRealVar* ctL = new RooRealVar("ctL", "ctL",  XMinCosThetaK,XMaxCosThetaK);
     RooRealVar* ctK = new RooRealVar("ctK", "ctK",  XMinCosThetaL,XMaxCosThetaL);
     RooRealVar* phi = new RooRealVar("phi", "phi",  XMinPhi,XMaxPhi);
     RooRealVar* tagged_mass = new RooRealVar("tagged_mass" , "#mu^{+}#mu^{-}K#pi mass", XMinSign,XMaxSign, "GeV/c^2");
-
+    
     TFile* OutSaveFile = new TFile( OutSaveFileName, "READ" );
     if ( !OutSaveFile || !OutSaveFile ->IsOpen() ) {
       cout<<Form("File not found: %s\n",OutSaveFileName)<<endl;
@@ -189,7 +191,40 @@ void  ReadSBModel(){
     } else {
      cout<<Form("Workspace Found!!! In file : %s\n",OutSaveFileName)<<endl;
     }
+//
+//  Cov Matrix
+//   
+//     TMatrixD *covMatrix = (TMatrixD*)w->obj(Form("covMatrix_bin%d_%d",Q2Bin,RunEra));
+//     if(covMatrix==0){
+//         cout<<Form("covMatrix_bin%d_%d not found in file:%s\n",OutSaveFileName)<<endl;
+//     }else{  
+//      cout<<Form("covMatrix found in file:%s  DUMP:\n",OutSaveFileName)<<endl;
+//      covMatrix->Print("f=  %10.3e  ");
+//     } 
     bool bfound=false;
+    for(int i=0;i<8;i++){
+     if (bfound) break;
+     for(int j=6;j<9;j++){
+      if (bfound) break;
+      covMatrix = (TMatrixD*)w->obj(Form("covMatrix_bin%d_201%d",i,j));
+      if ( !covMatrix) {
+       if(i==7&&j==8){
+//         cout<<Form("covMatrix_bin%d_201%d not found in file:%s\n",i,j,OutSaveFileName)<<endl;
+//         exit(1);
+       }	 
+      } else {
+       cout<<Form("covMatrix_bin%d_201%d Found!! in file:%s DUMP:\n",i,j,OutSaveFileName)<<endl;
+       bfound=true;
+      }
+     }  
+    }
+    if(bfound) {
+     covMatrix->Print("f=  %10.3e  ");
+    }else{
+     cout<<Form("NO covMatrix found in file:%s !!!\n",OutSaveFileName)<<endl;
+    } 
+//  
+    bfound=false;
     for(int i=0;i<8;i++){
      if (bfound) break;
      for(int j=6;j<9;j++){
@@ -212,7 +247,8 @@ void  ReadSBModel(){
      if (bfound) break;
      for(int j=6;j<=8;j++){
       if (bfound) break;
-      bkg_mass_sb = (RooExponential *)w->pdf(Form("bkg_mass_sb_bin%d_201%d",i,j));
+      bkg_mass_sb = (RooAbsPdf *)w->pdf(Form("bkg_mass_sb_bin%d_201%d",i,j));
+//      bkg_mass_sb = (RooExponential *)w->pdf(Form("bkg_mass_sb_bin%d_201%d",i,j));
       if ( ! bkg_mass_sb) {
        if(i==7&&j==8){
          cout<<Form("bkg_mass_sb_bin*_201* not found in file:%s\n",OutSaveFileName)<<endl;
@@ -232,11 +268,11 @@ void  ReadSBModel(){
       max_sbl = (RooRealVar *)w->var(Form("max_sbl_bin%d_201%d",i,j));
       if ( ! max_sbl) {
        if(i==7&&j==8){
-         cout<<Form("max_sbl_sb_bin*_201* not found in file:%s\n",OutSaveFileName)<<endl;
+         cout<<Form("max_sbl_bin*_201* not found in file:%s\n",OutSaveFileName)<<endl;
          exit(1);
        }
       } else {
-       cout<<Form("max_sbl_sb_bin%d_201%d=%f\n",i,j,max_sbl->getVal())<<endl;
+       cout<<Form("max_sbl_bin%d_201%d=%f\n",i,j,max_sbl->getVal())<<endl;
        bfound=true;
       } 
      }
