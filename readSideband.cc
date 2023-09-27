@@ -117,10 +117,10 @@ using namespace std;
 using namespace ROOT;
 using namespace RooFit;
 void ReadSBModel();
-char OutSaveFileName[400] =  "savesb-2018-Q2Bin-3-Bins-25-25-25-BernDeg-5-4-3-WSBL-5-2dot2-WSBR-2dot4-5dot6-SigmaProb.root";
+char OutSaveFileName[400] =  "savesb_2016_b0.root";
 char *ReadOutSaveFileName;
 
-char PNGNameReadSB3D[400] = "readSideband";
+std::string PNGNameReadSB3D="readSideband";
 RooDataSet *geneDataNew=0;
 RooDataSet *geneMassNew=0;
 RooBernsteinSideband *BernSideBand=0;
@@ -145,6 +145,10 @@ double XStepSign = 0.025;
 float  xMassHBin = (XMaxSign -XMinSign)/XStepSign;
 
 int GenEntries=1000;
+
+int Q2Bin  =0 ;
+int RunEra =0 ;
+
 //=================================================
 int main (int argc, char** argv) {
   TStopwatch TimeWatch;
@@ -162,7 +166,6 @@ int main (int argc, char** argv) {
      std::cout<<Form("Setting DEFAULT File: %s",OutSaveFileName)<<std::endl;
      std::cout<<"========================================================================="<<endl;
   }
-  sprintf(PNGNameReadSB3D,"%s-%s.png",PNGNameReadSB3D,OutSaveFileName);
   
 
   ReadSBModel(); 
@@ -189,7 +192,8 @@ void  ReadSBModel(){
      cout<<Form("Workspace not found in file:%s\n",OutSaveFileName)<<endl;
      exit(1);
     } else {
-     cout<<Form("Workspace Found!!! In file : %s\n",OutSaveFileName)<<endl;
+     cout<<Form("Workspace Found in file : %s. Try to print=>\n",OutSaveFileName)<<endl;
+     w->Print();
     }
 //
 //  Cov Matrix
@@ -233,15 +237,69 @@ void  ReadSBModel(){
       if ( !BernSideBand) {
 //       cout<<Form("BernSideBand_201%d not found\n",i)<<endl;
        if(i==7&&j==8){
-         cout<<Form("BernSideBand_bin%d_201%d not found in file:%s\n",i,j,OutSaveFileName)<<endl;
+//         cout<<Form("BernSideBand_bin%d_201%d not found in file:%s\n",i,j,OutSaveFileName)<<endl;
+         cout<<Form("Not found any BernSideBand function in  in file:%s\n",OutSaveFileName)<<endl;
          exit(1);
        }	 
       } else {
        cout<<Form("BernSideBand_bin%d_201%d Found!! in file:%s\n",i,j,OutSaveFileName)<<endl;
+       Q2Bin=i;
+       RunEra=2010+j;
        bfound=true;
       }
      }  
     }
+//=== dump par    
+    int  maxDegree1 =   BernSideBand->maxDegree1Get();
+    int  maxDegree2 =   BernSideBand->maxDegree2Get();
+    int  maxDegree3 =   BernSideBand->maxDegree3Get();
+    int  numParameters = (maxDegree1+1)*(maxDegree2+1)*(maxDegree3);
+//    int  numParameters = (maxDegree1+1)*(maxDegree2+1)*(maxDegree3+1);
+
+    cout<<Form("maxDegree1=%d\n",maxDegree1); 
+    cout<<Form("maxDegree2=%d\n",maxDegree2); 
+    cout<<Form("maxDegree3=%d\n",maxDegree3); 
+    cout<<Form("numParameters=%d\n",numParameters); 
+
+    RooArgList observables (*ctK, *ctL, *phi);
+    RooArgList* bkg_ang_params = (RooArgList*)BernSideBand ->getParameters(observables);
+    bool test1 = false;
+    bool test2 = false;
+    cout<<"Trying to read in the format with 3 digit: "<<Form("p%03d",0)<<endl;
+    for (int i=0;i<numParameters;++i){
+      RooRealVar* ivar =  (RooRealVar* )bkg_ang_params->find(Form("p%03d",i)) ;
+      if( !ivar) {
+       cout<<"Error: "<<Form("p%03d",i)<<" not found !!!"<<endl;
+       break;
+      }else{
+       test1 = true;
+      } 
+      cout <<Form("%s=%f",ivar->GetName(),ivar->getVal())<<endl;
+    }
+    cout<<"Trying to read in the format with 3 digit and Era: "<<Form("p%03d_%d",0,RunEra)<<endl;
+    for (int i=0;i<numParameters;++i){
+      RooRealVar* ivar =  (RooRealVar* )bkg_ang_params->find(Form("p%03d_%d",i,RunEra)) ;
+      if( !ivar) {
+       cout<<"Error: "<<Form("p%03d_%d",i,RunEra)<<" not found !!!"<<endl;
+       break;
+      }else{
+       test2 = true;
+      } 
+      cout <<Form("%s=%f",ivar->GetName(),ivar->getVal())<<endl;
+    }
+    if(!test1&&!test2){
+     cout<<"Try to dump the params without format"<<endl;
+     auto iter  = bkg_ang_params->createIterator();
+     RooRealVar* ivar =  (RooRealVar*)iter->Next();
+     while (ivar) {
+       cout <<Form("%s=%f ",ivar->GetName(),ivar ->getVal())<<endl;
+       ivar =  (RooRealVar*)iter->Next();
+     }
+    } 
+//=== dump par    
+
+
+
     bfound=false;
     for(int i=0;i<=7;i++){
      if (bfound) break;
@@ -295,6 +353,7 @@ void  ReadSBModel(){
      }
     }
     
+    
     RooAbsPdf::GenSpec* genSpec = BernSideBand->prepareMultiGen(RooArgSet(*ctL,*ctK,*phi),NumEvents(GenEntries)) ;
     geneDataNew = BernSideBand->generate(*genSpec) ;
 //
@@ -324,7 +383,8 @@ void  ReadSBModel(){
     geneMassNew->plotOn(mframeFits, RooFit::MarkerStyle(kPlus));
     bkg_mass_sb->plotOn(mframeFits,RooFit::LineColor(kRed),Normalization(SBEntries,RooAbsReal::NumEvent),RooFit::ProjWData(RooArgSet(*tagged_mass),*geneMassNew));
     mframeFits->Draw();
+    PNGNameReadSB3D=Form("%s-%d-b%d.png",PNGNameReadSB3D.c_str(),RunEra,Q2Bin);
 
-    gSystem->Exec(Form("mv %s %s.tmp",PNGNameReadSB3D,PNGNameReadSB3D));
-    cSideband->Print(PNGNameReadSB3D);
+    gSystem->Exec(Form("mv %s %s.tmp",PNGNameReadSB3D.c_str(),PNGNameReadSB3D.c_str()));
+    cSideband->Print(PNGNameReadSB3D.c_str());
   } 

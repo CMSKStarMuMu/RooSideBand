@@ -52,7 +52,7 @@ ClassImp(RooBernsteinSideband);
       int icc=0;
       for(int i = 0; i <= maxDegree1 ; ++i) {
      	for(int j = 0; j <= maxDegree2 ; ++j) {
-     	 for(int k = 0; k <= maxDegree3 ; ++k) {
+     	 for(int k = 0; k <  maxDegree3 ; ++k) {
  
      	 printf("RooBernsteinSideband: Par(%d)=%f cosL=%d cosK=%d phi=%d\n",icc,((RooAbsReal&) _coefList[icc]).getVal(), i,j,k);
      	 icc++;
@@ -141,6 +141,7 @@ Double_t RooBernsteinSideband::evaluate() const
 //       long double sz_div = 1.0/(1.0-z);
        
        int ipar =0;
+       int ipa0 =0;
        double func =0.0;
        double intg_1 =0.0;
        
@@ -164,10 +165,16 @@ Double_t RooBernsteinSideband::evaluate() const
 // 	   func += ((RooAbsReal&) _coefList[ipar-1]).getVal()*sx[_maxDegree1-i]*sy[_maxDegree2-j]*sz[_maxDegree3-k];
 //           intg_1 +=((RooAbsReal&) _coefList[ipar-1]).getVal();
 //	   if(fabs(((RooAbsReal&) _coefList[ipar]).getVal())>0.0){
+	    if (k==0) ipa0=ipar;
  	    bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
- 	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
- 	    intg_1 += ((RooAbsReal&) _coefList[ipar]).getVal();
-	   ipar++;
+ 	    if(k==_maxDegree3){
+ 	     func   += ((RooAbsReal&) _coefList[ipa0]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	     intg_1 += ((RooAbsReal&) _coefList[ipa0]).getVal();
+	    }else{
+ 	     func   += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	     intg_1 += ((RooAbsReal&) _coefList[ipar]).getVal();
+	     ipar++;
+	    } 
 // 	   } 
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) _coefList[ipar]).getVal()<<std::endl;
 	   tz *= z;
@@ -243,6 +250,7 @@ fptype  RooBernsteinSideband::device_bernsteinkn_func  (fptype x, fptype enne, f
 //    z=(z-zmin)/zdif;
     
        int ipar = 0 ;
+       int ipa0 =0;
        fptype ret   =0;
        fptype intg_1 =0.;
        for(int i = 0; i <= maxDegree1 ; ++i) {
@@ -250,13 +258,18 @@ fptype  RooBernsteinSideband::device_bernsteinkn_func  (fptype x, fptype enne, f
 //	  std::cout<<"func = par["<<ipar<<"]*x^"<<kk<<"*y^"<<jj<<std::endl;
           for(int k = 0; k <= maxDegree3 ; ++k) {
 //
+	   if (k==0) ipa0=ipar;
            fptype bernknintgbinx = device_SidebandBernsteinkn_intgBin(xLeft,xRight,maxDegree1,i);
            fptype bernknintgbiny = device_SidebandBernsteinkn_intgBin(yLeft,yRight,maxDegree2,j);
            fptype bernknintgbinz = device_SidebandBernsteinkn_intgBin(zLeft,zRight,maxDegree3,k);
-           ret   +=((RooAbsReal&) _coefList[ipar]).getVal()*bernknintgbinx*bernknintgbiny*bernknintgbinz;
-           intg_1+=((RooAbsReal&) _coefList[ipar]).getVal();
-//
-	   ipar++;
+ 	   if(k==maxDegree3){
+            ret   +=((RooAbsReal&) _coefList[ipa0]).getVal()*bernknintgbinx*bernknintgbiny*bernknintgbinz;
+            intg_1+=((RooAbsReal&) _coefList[ipa0]).getVal();
+ 	   }else{
+            ret   +=((RooAbsReal&) _coefList[ipar]).getVal()*bernknintgbinx*bernknintgbiny*bernknintgbinz;
+            intg_1+=((RooAbsReal&) _coefList[ipar]).getVal();
+	    ipar++;
+	   } 
 	  }
          }
        }
@@ -305,29 +318,29 @@ fptype  RooBernsteinSideband::device_SidebandBernsteinkn_intgBin( fptype xLeft, 
 Int_t RooBernsteinSideband::getAnalyticalIntegral(RooArgSet& allVars, RooArgSet& analVars, const char* /*rangeName*/) const
 {
   if       (matchArgs(allVars, analVars, _x,_y,_z)){
-   std::cout<<"getAnalyticalIntegral==1: Analytic integral over x y z"<<std::endl;
+//    std::cout<<"getAnalyticalIntegral==1: Analytic integral over x y z"<<std::endl;
    return 1;
   }else if (matchArgs(allVars, analVars, _y,_z)){
-   std::cout<<"getAnalyticalIntegral==2: Analytic integral over y z"<<std::endl;
+//    std::cout<<"getAnalyticalIntegral==2: Analytic integral over y z"<<std::endl;
    return 2;
   }else if (matchArgs(allVars, analVars, _x,_z)){
-   std::cout<<"getAnalyticalIntegral==3: Analytic integral over x z"<<std::endl;
+//    std::cout<<"getAnalyticalIntegral==3: Analytic integral over x z"<<std::endl;
    return 3;
   }else if (matchArgs(allVars, analVars, _x,_y)){
-   std::cout<<"getAnalyticalIntegral==4: Analytic integral over x y"<<std::endl;
+//    std::cout<<"getAnalyticalIntegral==4: Analytic integral over x y"<<std::endl;
    return 4;
   }else if (matchArgs(allVars, analVars, _x   )){
-   std::cout<<"getAnalyticalIntegral==5: Analytic integral over x  "<<std::endl;
+//    std::cout<<"getAnalyticalIntegral==5: Analytic integral over x  "<<std::endl;
    return 5;
   }else if (matchArgs(allVars, analVars, _y   )){
-   std::cout<<"getAnalyticalIntegral==6: Analytic integral over y  "<<std::endl;
+//    std::cout<<"getAnalyticalIntegral==6: Analytic integral over y  "<<std::endl;
    return 6;
   }else if (matchArgs(allVars, analVars, _z   )){
-   std::cout<<"getAnalyticalIntegral==7: Analytic integral over z  "<<std::endl;
+//    std::cout<<"getAnalyticalIntegral==7: Analytic integral over z  "<<std::endl;
    return 7;
   }else{  
-   std::cout << "Error in RooBernsteinSideband::analyticalIntegral: set getAnalyticalIntegral==0" << std::endl;
-   std::cout << "==> analVars = " << analVars << std::endl ;
+//    std::cout << "Error in RooBernsteinSideband::analyticalIntegral: set getAnalyticalIntegral==0" << std::endl;
+//    std::cout << "==> analVars = " << analVars << std::endl ;
    return 0;
  } 
 }
@@ -335,7 +348,7 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
 {
     if(code==1){ // X Y Z INTEGRATED
 
-       printf("integrale xyz\n");
+//        printf("integrale xyz\n");
 //       fptype xBinw=_x.max(rangeName)-_x.min(rangeName);
 //       fptype yBinw=_y.max(rangeName)-_y.min(rangeName);
 //       fptype zBinw=_z.max(rangeName)-_z.min(rangeName);
@@ -401,12 +414,14 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
        }
       }
          int ipar = 0 ;
+         int ipa0 =0;
          fptype ret   =0;
          for(int i = 0; i <= _maxDegree1 ; ++i) {
            for(int j = 0; j <= _maxDegree2 ; ++j) {
 //          std::cout<<"func = par["<<ipar<<"]*x^"<<kk<<"*y^"<<jj<<std::endl;
             for(int k = 0; k <= _maxDegree3 ; ++k) {
 
+	     if (k==0) ipa0=ipar;
 //              fptype bernknintgbinx = device_SidebandBernsteinkn_intgBin(xLeft,xRight,_maxDegree1,i);
 //              fptype bernknintgbiny = device_SidebandBernsteinkn_intgBin(yLeft,yRight,_maxDegree2,j);
 //              fptype bernknintgbinz = device_SidebandBernsteinkn_intgBin(zLeft,zRight,_maxDegree3,k);
@@ -414,9 +429,12 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
 //           fptype bernknintgbiny = 1./(maxDegree2+1.);
 //           fptype bernknintgbinz = 1./(maxDegree3+1.);
 //             ret   +=((RooAbsReal&) _coefList[ipar]).getVal()*bernknintgbinx*bernknintgbiny*bernknintgbinz;
-             ret   +=((RooAbsReal&) _coefList[ipar]).getVal()*bernknintgbinx[i]*bernknintgbiny[j]*bernknintgbinz[k];
- 
-             ipar++;
+	     if(k==_maxDegree3){
+              ret   +=((RooAbsReal&) _coefList[ipa0]).getVal()*bernknintgbinx[i]*bernknintgbiny[j]*bernknintgbinz[k];
+ 	     }else{
+              ret   +=((RooAbsReal&) _coefList[ipar]).getVal()*bernknintgbinx[i]*bernknintgbiny[j]*bernknintgbinz[k];
+              ipar++;
+	     } 
             }
  
  
@@ -457,18 +475,24 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
         sx[i]= sx[i-1]*(1.-x);
        }
        int ipar =0;
+       int ipa0 =0;
        fptype func =0.0;
        fptype tx = 1.;
        for(int i = 0; i <= _maxDegree1 ; ++i) {
          for(int j = 0; j <= _maxDegree2 ; ++j) {
           for(int k = 0; k <= _maxDegree3 ; ++k) {
 //           fptype bernknvalx =  device_bernsteinkn_func(x,_maxDegree1,i);
+	   if (k==0) ipa0=ipar;
            fptype bernknvalx =  device_coeffbinomial(_maxDegree1,i)*tx*sx[_maxDegree1-i];
  	   fptype bernknvaly =  device_SidebandBernsteinkn_intgBin(yLeft,yRight,_maxDegree2,j);
 	   fptype bernknvalz =  device_SidebandBernsteinkn_intgBin(zLeft,zRight,_maxDegree3,k);
-	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+	   if(k==_maxDegree3){
+	    func += ((RooAbsReal&) _coefList[ipa0]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	   }else{
+	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
-	   ipar++;
+	    ipar++;
+	   }
 	  }
          }
 	 tx*=x;
@@ -483,18 +507,24 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
         sy[i]= sy[i-1]*(1.-y);
        }
        int ipar =0;
+       int ipa0 =0;
        fptype func =0.0;
        for(int i = 0; i <= _maxDegree1 ; ++i) {
          fptype ty = 1.;
          for(int j = 0; j <= _maxDegree2 ; ++j) {
           for(int k = 0; k <= _maxDegree3 ; ++k) {
+	   if (k==0) ipa0=ipar;
  	   fptype bernknvalx =  device_SidebandBernsteinkn_intgBin(xLeft,xRight,_maxDegree1,i);
 //           fptype bernknvaly =  device_bernsteinkn_func(y,_maxDegree2,j);
            fptype bernknvaly =  device_coeffbinomial(_maxDegree2,j)*ty*sy[_maxDegree2-j];
 	   fptype bernknvalz =  device_SidebandBernsteinkn_intgBin(zLeft,zRight,_maxDegree3,k);
-	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+	   if(k==_maxDegree3){
+	    func += ((RooAbsReal&) _coefList[ipa0]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	   }else{
+	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
-	   ipar++;
+	    ipar++;
+	   } 
 	  }
 	  ty*=y;
          }
@@ -508,18 +538,24 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
         sz[i]= sz[i-1]*(1.-z);
        }
        int ipar =0;
+       int ipa0 =0;
        fptype func =0.0;
        for(int i = 0; i <= _maxDegree1 ; ++i) {
          for(int j = 0; j <= _maxDegree2 ; ++j) {
 	  fptype tz=1.;
           for(int k = 0; k <= _maxDegree3 ; ++k) {
+	   if (k==0) ipa0=ipar;
  	   fptype bernknvalx =  device_SidebandBernsteinkn_intgBin(xLeft,xRight,_maxDegree1,i);
  	   fptype bernknvaly =  device_SidebandBernsteinkn_intgBin(yLeft,yRight,_maxDegree2,j);
 //           fptype bernknvalz =  device_bernsteinkn_func(z,_maxDegree3,k);
            fptype bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
-	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+	   if(k==_maxDegree3){
+	    func += ((RooAbsReal&) _coefList[ipa0]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	   }else{
+	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
-	   ipar++;
+	    ipar++;
+	   } 
 	   tz*=z;
 	  }
          }
@@ -538,18 +574,24 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
         sz[i]= sz[i-1]*(1.-z);
        }
        int ipar =0;
+       int ipa0 =0;
        fptype func =0.0;
        for(int i = 0; i <= _maxDegree1 ; ++i) {
 	 fptype ty=1.;
          for(int j = 0; j <= _maxDegree2 ; ++j) {
 	  fptype tz=1.;
           for(int k = 0; k <= _maxDegree3 ; ++k) {
+	   if (k==0) ipa0=ipar;
  	   fptype bernknvalx =  device_SidebandBernsteinkn_intgBin(xLeft,xRight,_maxDegree1,i);
            fptype bernknvaly =  device_coeffbinomial(_maxDegree2,j)*ty*sy[_maxDegree2-j];
            fptype bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
-	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+	   if(k==_maxDegree3){
+	    func += ((RooAbsReal&) _coefList[ipa0]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	   }else{
+	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
-	   ipar++;
+	    ipar++;
+	   } 
 	   tz*=z;
 	  }
 	  ty*=y;
@@ -569,18 +611,24 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
         sz[i]= sz[i-1]*(1.-z);
        }
        int ipar =0;
+       int ipa0 =0;
        fptype func =0.0;
        fptype tx=1.;
        for(int i = 0; i <= _maxDegree1 ; ++i) {
          for(int j = 0; j <= _maxDegree2 ; ++j) {
 	  fptype tz=1.;
           for(int k = 0; k <= _maxDegree3 ; ++k) {
+	   if (k==0) ipa0=ipar;
            fptype bernknvalx =  device_coeffbinomial(_maxDegree1,i)*tx*sx[_maxDegree1-i];
  	   fptype bernknvaly =  device_SidebandBernsteinkn_intgBin(yLeft,yRight,_maxDegree2,j);
            fptype bernknvalz =  device_coeffbinomial(_maxDegree3,k)*tz*sz[_maxDegree3-k];
-	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+	   if(k==_maxDegree3){
+	    func += ((RooAbsReal&) _coefList[ipa0]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	   }else{
+	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
-	   ipar++;
+	    ipar++;
+	   } 
 	   tz*=z;
 	  }
          }
@@ -600,18 +648,24 @@ Double_t RooBernsteinSideband::analyticalIntegral(Int_t code, const char* rangeN
         sy[i]= sy[i-1]*(1.-y);
        }
        int ipar =0;
+       int ipa0 =0;
        fptype func =0.0;
        fptype tx=1.;
        for(int i = 0; i <= _maxDegree1 ; ++i) {
 	 fptype ty=1.;
          for(int j = 0; j <= _maxDegree2 ; ++j) {
           for(int k = 0; k <= _maxDegree3 ; ++k) {
+	   if (k==0) ipa0=ipar;
            fptype bernknvalx =  device_coeffbinomial(_maxDegree1,i)*tx*sx[_maxDegree1-i];
            fptype bernknvaly =  device_coeffbinomial(_maxDegree2,j)*ty*sy[_maxDegree2-j];
  	   fptype bernknvalz =  device_SidebandBernsteinkn_intgBin(zLeft,zRight,_maxDegree3,k);
-	   func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+	   if(k==_maxDegree3){
+	    func += ((RooAbsReal&) _coefList[ipa0]).getVal()*bernknvalx*bernknvaly*bernknvalz;
+ 	   }else{
+	    func += ((RooAbsReal&) _coefList[ipar]).getVal()*bernknvalx*bernknvaly*bernknvalz;
 //	   std::cout<<"coeff p("<<ipar<<") = "<<((RooAbsReal&) coefList[ipar]).getVal()<<std::endl;
-	   ipar++;
+	    ipar++;
+	   }
 	  }
 	  ty*=y;
          }
