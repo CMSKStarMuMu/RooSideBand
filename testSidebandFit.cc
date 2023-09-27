@@ -943,13 +943,13 @@ void FitSBModel(){
  									 xCosKHBin, XMinCosThetaK, XMaxCosThetaK,
 									 xPhiHBin , XMinPhi, XMaxPhi );
 //
-  int	numParameters = (maxDegree1+1)*(maxDegree2+1)*(maxDegree3+1);
+  int	numParameters = (maxDegree1+1)*(maxDegree2+1)*(maxDegree3);
 
   int icc=0;
   char ParCheck[numParameters][30];
   for(int i = 0; i <= maxDegree1 ; ++i) {
     for(int j = 0; j <= maxDegree2 ; ++j) {
-     for(int k = 0; k <= maxDegree3 ; ++k) {
+     for(int k = 0; k <  maxDegree3 ; ++k) {
             
       	    sprintf(ParCheck[icc], "cosL=%d cosK=%d phi=%d", i,j,k); 
 //	    cout<<Form("ParCheck(%d)= %s",icc,ParCheck[icc])<<endl;
